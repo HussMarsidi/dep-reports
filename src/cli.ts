@@ -18,6 +18,7 @@ import { loadNotes } from './notes/loader.js';
 import { mergeNotes } from './notes/merger.js';
 import { filterPackages } from './utils/filter.js';
 import { initCommand } from './commands/init.js';
+import { checkRegistryConnectivity } from './utils/network.js';
 
 const program = new Command();
 const packageJsonPath = new URL('../package.json', import.meta.url);
@@ -91,6 +92,15 @@ program
       // Normalize output
       logger.info(`Found ${Object.keys(rawOutput).length} outdated packages`);
       const normalized = normalizeOutdatedOutput(rawOutput);
+
+      // Check registry connectivity before enrichment
+      logger.info('Checking registry connectivity...');
+      const isRegistryReachable = await checkRegistryConnectivity();
+      if (!isRegistryReachable) {
+        logger.error('Unable to reach the npm registry.');
+        logger.info('If you have a cache, try running with --refresh.');
+        process.exit(1);
+      }
 
       // Enrich with registry data (using config concurrency)
       logger.info('Enriching packages with registry metadata...');

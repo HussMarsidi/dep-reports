@@ -246,7 +246,7 @@ interface CacheData {
 
 ---
 
-### Phase 2: Configuration System
+### ✅ Phase 2: Configuration System
 **Goal**: Honor `config.json` and `notes.json`
 
 **Tasks**:
@@ -307,7 +307,7 @@ interface CacheData {
 
 ---
 
-### Phase 3: Caching & Refresh
+### ✅ Phase 3: Caching & Refresh
 **Goal**: Instant re-runs with `--refresh`
 
 **Tasks**:
