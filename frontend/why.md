@@ -4,94 +4,122 @@ description: Why choose dep-report over automated PR tools? Understand the philo
 
 # Why dep-report?
 
-## The Problem We're Solving
+## The Visibility Problem
 
-Your team ignores dependency updates until:
-- ❌ A critical CVE forces a scramble
-- ❌ Build breaks from 3-year-old packages  
-- ❌ Management asks "why is our tech debt so high?"
+Managing dependencies is reactive by default. Updates pile up unnoticed until something forces action: a security advisory drops, a build breaks, or technical debt comes up in a review.
 
-You know you should update. But when? Which ones? Why these and not those?
+The challenge isn't updating packages—it's knowing which updates matter, when to act, and having evidence for those decisions. Automated PR tools solve the wrong problem: they create work without context.
 
----
+**dep-report provides visibility first, automation second.**
 
-## Why Not Just Use Renovate/Dependabot?
+## Comparison with Automation Tools
 
-Good tools. Wrong job.
+| Feature | dep-report | Renovate | Dependabot |
+|---------|------------|----------|------------|
+| **Primary Function** | Visibility & decision-making | Automated PR creation | Automated PR creation |
+| **Automation** | None (intentional) | Full automation | Full automation |
+| **Age Analysis** | ✅ Shows version age | ❌ Version diff only | ❌ Version diff only |
+| **Stale Detection** | ✅ Configurable threshold | ❌ Not available | ❌ Not available |
+| **Audit Trail** | ✅ Timestamped reports | ❌ PR history only | ❌ PR history only |
+| **Decision Context** | ✅ Notes system | ❌ PR comments | ❌ PR comments |
+| **Historical Tracking** | ✅ Compare over time | ❌ Current state only | ❌ Current state only |
+| **Security Focus** | Age-based risk | CVE alerts | ✅ Native CVE alerts |
+| **Configuration** | Flexible, exportable | Highly configurable | Limited options |
+| **Integration** | CLI / CI agnostic | Many platforms | GitHub only |
+| **Vendor Lock-in** | None (local files) | Self-hosted option | GitHub required |
+| **Package Managers** | npm, pnpm, bun | 40+ ecosystems | Multiple supported |
 
-| Automated Tools (Renovate)    | dep-report                     |
-|-------------------------------|--------------------------------|
-| Creates PRs automatically     | Creates evidence               |
-| You merge or ignore           | You document and decide        |
-| No audit trail of decisions   | Timestamped decision history   |
-| Noise-driven                  | Signal-driven                  |
-| Opinionated automation        | Zero-opinion documentation     |
+### The Complementary Approach
 
-**We're not competitors. We're complementary.**
+These tools solve different problems:
 
-Use Renovate for automation *after* you use dep-report for visibility.
+**dep-report provides visibility:**
+- What's outdated and why it matters
+- Decision history with notes
+- Quarterly reviews and audit trails
+- Team prioritization discussions
 
----
+**Renovate/Dependabot provide automation:**
+- Automated update PRs
+- Security patch alerts
+- Reduced manual update work
 
-## Our Philosophy
+**Together:** Use dep-report to understand and decide, then use automation tools to execute those decisions.
 
-### 1. Evidence Over Automation
-Documentation > Action. Decision-making > Doing.
+## Core Philosophy
 
-### 2. Time is the Hidden Risk
-A 3-year-old dependency has more CVEs, less support, higher upgrade friction.
-Age matters more than version numbers.
+### Evidence Over Automation
 
-### 3. Human Context Matters
-"Why didn't we upgrade?" shouldn't require Jira archaeology.
-Notes system: Track blockers inline with reports.
+Reports create a timestamped record of dependency state. Six months later, you can see what was outdated, what you chose to defer, and why.
 
-### 4. Transparency is Non-Negotiable
-`--include-config` exports templates, logic, everything.
-No black boxes. Ever.
+**Example:** A major framework update appears. You add a note: "Requires API migration, planned for Q3." That context is preserved in the report, not lost in Slack or Jira.
 
----
+### Age as a Risk Factor
 
-## Who Should Use This?
+Version numbers tell you about compatibility. Age tells you about risk accumulation.
 
-### ✅ Perfect For:
-- Teams drowning in Renovate PRs
-- Projects with infrequent dependency reviews
-- Organizations needing audit trails (compliance, finance)
-- Tech leads managing technical debt
-- Pre-release dependency gates
+A package that hasn't been updated in 18 months likely has:
+- Accumulated security issues (even if not Common Vulnerabilities and Exposures (CVE))
+- Decreased community support
+- Compatibility gaps with modern tooling
+- Higher upgrade friction (more changes to review)
 
-### 🤷 Not For:
-- Projects with zero dependencies
-- Teams happy with auto-merge bots
-- "Update everything always" philosophies
+**We chose 18 months as a default threshold** based on typical open-source maintenance patterns. You can adjust this to match your team's risk tolerance.
 
----
+### Context Belongs in Reports
 
-## What Makes Us Different?
+Decision context shouldn't require archaeology through tickets, chat logs, or commit messages.
 
-### 1. Timestamped Audit Trail
-Not "current state"—historical snapshots.
-Compare Jan vs Jun: Which packages are still stuck?
+The notes system lets you document upgrade blockers directly in reports:
+- "Waiting for team training on new API"
+- "Breaking changes require refactor"
+- "Low usage, deferred to Q4"
 
-### 2. Age-Based Risk (Not Just Version)
-Your installed version's age = actual risk.
-`lodash@4.0.0` (5 years old) is riskier than version diff suggests.
+This context travels with the reports, creating self-documenting dependency history.
 
-### 3. Notes System
-Separate "can't upgrade" from "didn't upgrade."
-Context lives in the report, not Slack history.
+### Full Transparency
 
-### 4. Full Transparency
-`--include-config` exports the entire tool's logic.
-Modify risk scoring. Customize HTML. It's just JSON and templates.
+`--include-config` exports the tool's complete logic: templates, risk calculations, everything. You can:
+- Modify HTML for company branding
+- Adjust risk scoring to your conventions
+- Audit the tool's behavior for compliance
+- Fork and customize without limitations
 
-### 5. No Vendor Lock-In
-Reports are markdown + HTML. Templates are yours to edit.
-Not dependent on our service, API, or existence.
+No proprietary algorithms. No vendor lock-in. Your reports are markdown and HTML—readable without the tool.
 
----
+## When dep-report is Useful
 
-## Ready to Try?
+### Strong Fit
 
-[Get Started (5 minutes) →](/guide/getting-started)
+**Large dependency trees:** Projects with many dependencies where manual tracking is impractical.
+
+**Infrequent update cycles:** Teams that batch updates quarterly or before releases, rather than updating continuously.
+
+**Audit requirements:** Organizations that need documented evidence of dependency review and decision-making.
+
+**Multi-team coordination:** When dependency updates require cross-team discussion and prioritization.
+
+**Technical debt management:** Tech leads tracking long-term dependency health trends.
+
+### Less Relevant
+
+**Very small projects:** With <10 dependencies, manual review is straightforward.
+
+**Always-current philosophy:** Teams that auto-merge all updates may not need additional visibility.
+
+**Zero dependencies:** Tools and libraries without external dependencies don't need dependency management.
+
+### Inline Context with Notes
+
+Add notes to track upgrade blockers:
+
+```json
+{
+  "react": "Breaking changes in v18 require team training. Scheduled for Q3 after certification.",
+  "webpack": "Migration to v5 blocked by deprecated plugins. Evaluating alternatives."
+}
+```
+
+Notes appear in reports, connecting technical state with human decisions. This is what makes reports useful months later.
+
+[Get Started →](/guide/getting-started)
