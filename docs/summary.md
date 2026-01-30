@@ -3,144 +3,123 @@
 ## 1. Executive Summary
 
 **The Problem**
-Dependency updates are often ignored until they cause breakage. Engineers lack visibility into how "stale" their packages are. A package unreleased for 3 years poses a different risk profile than one updated yesterday, yet standard tools treat them similarly. Existing solutions (Renovate/Dependabot) are excellent for automation but can be noisy; teams often need a lightweight, auditable "ledger" of dependency health first.
+Dependency updates are often ignored until they break the build. Engineers lack visibility into the *temporal* risk of their stack—a package unreleased for 3 years poses a different threat than one updated yesterday. Teams need a lightweight, auditable "ledger" of dependency health that separates critical upgrades from noise.
 
 **The Solution**
-`dep-report` is a CLI tool that generates a clear, version-controlled snapshot of outdated dependencies. It runs locally or in CI, enriching `npm outdated` data with publish history ("age") and manual engineering notes.
+`dep-report` is a zero-config CLI tool that generates version-controlled snapshots of dependency risk. It enriches standard package data with **publish history (Age)** and **Stale Status**, allowing teams to see not just *what* is outdated, but *how badly* it is rotting.
 
-**Key Philosophy**
-* **Snapshot-based:** Reports are stamped with ISO dates (`2026-01-30_outdated.md`), allowing teams to track drift over time.
-* **Contained Blast Radius:** The tool touches nothing outside of a single `./dep-report/` directory.
-* **Separation of Concerns:** Machine data (versions, ages) is auto-generated. Human context (why we aren't updating) lives in a separate `notes.json` file, ensuring reports can be regenerated without losing manual input.
-* **Simple by Default, Extensible by Choice:** Works out-of-the-box with zero config, but supports an `init --include-config` mode for teams who want custom templates and logic hooks.
+**Core Philosophy**
+* **Snapshot-Based:** Reports are stamped with ISO dates (`2026-01-30_outdated.md`), creating an auditable history of technical debt.
+* **Agnostic & Robust:** Automatically detects your package manager (`npm` or `pnpm`) and inherits your local environment configuration to handle private registries seamlessly.
+* **Human-Centric:** Separates machine data (versions) from human context (notes). Your reasons for postponing upgrades ("Blocked by bug X") are persistent and survive report regeneration.
 
 ---
 
-## 2. Directory Structure & Architecture
+## 2. Edge Cases & Mitigations (Requirements)
 
-The tool owns the `./dep-report` namespace exclusively.
+The tool must handle the following environmental constraints without crashing. This table serves as the primary "Quality Assurance" checklist.
 
-### File Layout
+| Category | Edge Case | Mitigation Requirement |
+| :--- | :--- | :--- |
+| **Prerequisites** | **Missing `node_modules`** | **Pre-flight Check:** Verify `node_modules` exists. Abort with specific "Run npm install first" instruction if missing. |
+| **Data Safety** | **Non-Semver Versions** | **Validation:** Check `current` version validity. If `file:`, `git+ssh`, or `URL`, flag Risk as `Exotic` and skip Age calculation. |
+| **Data Safety** | **Corrupt JSON** | **Safe Load:** `try/catch` loading of config/notes. Exit with a human-readable syntax error (e.g., "Trailing comma in notes.json"). |
+| **Security** | **HTML Injection** | **Sanitization:** Escape all user-generated content (Package Names, Notes) before rendering HTML output to prevent XSS. |
+| **Environment** | **Permission Denied** | **Write Check:** Test write permissions on the output folder *before* starting expensive network calls. |
+| **Environment** | **Git Noise** | **Hygiene:** `init` ensures `.cache.json` is ignored (by creating an internal `.gitignore` inside `./dep-report/`). |
+| **Network** | **Total Offline** | **Connectivity Check:** Perform a single ping before batch processing. Abort if offline with a suggestion to use `--refresh`. |
+| **Network** | **Rate Limiting** | **Concurrency Queue:** Network requests must be batched (e.g., chunks of 5) to prevent 429 errors. |
+| **Network** | **Registry Failures** | **Fail Soft:** If a specific package query fails (404/401), flag its Age as `Unknown` and continue processing others. |
+| **Logic** | **Empty State** | **Success Template:** If `npm outdated` returns empty, bypass processing and render an "All Clear" success report. |
+| **Logic** | **Monorepos** | **Scope Constraint:** V1 strictly scans the `package.json` in the Current Working Directory. No workspace traversal. |
+| **Config** | **Config Conflict** | **Explicit Precedence:** CLI Args > Config File > Defaults. |
+
+---
+
+## 3. Directory Specification
+
+The tool must strictly operate within the `./dep-report` namespace.
+
 ```text
 /
 ├── package.json
 ├── .dep-report/
-│   ├── config.json         # (Optional) Settings: thresholds, formats
-│   ├── notes.json          # (Optional) Manual annotations (key: package name)
+│   ├── .gitignore          # Ignores .cache.json
+│   ├── config.json         # Settings: thresholds, formats, ignore patterns
+│   ├── notes.json          # Manual annotations (Key: Package Name, Value: String)
+│   ├── .cache.json         # Raw data cache for instant re-runs
 │   ├── bin/
-│   │   └── transform.js    # (Optional) JS Hook for data manipulation
-│   ├── templates/          # (Optional) Custom Handlebars templates
-│   │   ├── markdown.hbs
-│   │   └── html.hbs
-│   └── reports/            # Output directory (Generated)
+│   │   └── transform.js    # (Optional) User hook for data manipulation
+│   └── reports/            # Output directory
 │       ├── latest.md
 │       ├── latest.html
 │       ├── 2026-01-30_outdated.md
-│       ├── 2026-01-30_outdated.html
 │       └── ...
 ```
 
-### Data Flow Pipeline
+## 4. Feature Specifications
 
-1. **Source:** Run `npm outdated --json` to get raw dependency data.
-2. **Enrich:** Query `npm view <pkg> time --json` to calculate Age and Stale Status.
-3. **Annotate:** Load `notes.json` and merge manual notes into package objects.
-4. **Transform:** (Optional) If `bin/transform.js` exists, pass data through it for custom filtering/sorting.
-5. **Render:** Generate Markdown and HTML using internal defaults or custom templates.
-6. **Write:** Save to YYYY-MM-DD (snapshot) and latest (mirror) files.
+### 4.1. Core Data Engine
 
-## 3. Implementation Phases
+- **Auto-Detection:** Identify npm or pnpm usage based on lockfile presence.
 
-### Phase 1: Core Logic & The "Zero Config" Experience
+- **Normalization:** Convert disparate JSON outputs into a unified schema: `{ name, current, latest, type }`.
 
-**Goal:** A functional CLI that produces the standard report structure with no setup required.
+- **Enrichment:**
+  - Fetch time metadata for every outdated package.
+  - Calculate Age (time since latest publish date).
+  - Determine Stale Status (Boolean) based on configured threshold.
+  - Calculate Semver Risk (Major/Minor/Patch/Exotic/Not Installed).
 
-**1.1. Data Collection:**
+### 4.2. Configuration System (config.json)
 
-- Implement script to parse `npm outdated`.
-- Fetch publish dates to calculate `lastPublishedAt` and age (e.g., "2.5 years").
-- Flag `isStale` (default > 2 years).
+- **staleThreshold:** Accepts human-readable strings (e.g., "18 months", "12w") to define "Stale".
 
-**1.2. Notes Integration:**
+- **ignorePatterns:** Array of globs to exclude specific packages.
 
-- Read `./dep-report/notes.json` (if exists).
-- Inject notes into the data model matching by package name.
+- **formats:** Toggle specific output formats (md, html).
 
-**1.3. Output Generation:**
+### 4.3. Annotation System (notes.json)
 
-- Ensure `./dep-report/reports/` exists.
-- Generate Markdown table (Package, Current, Latest, Risk, Age, Stale, Notes).
-- Generate HTML table (simple, unstyled).
-- Implement overwrite logic: Update `latest.*` and today's `YYYY-MM-DD.*` files.
+- **Persistence:** Notes stored in a standalone JSON file.
 
-### Phase 2: The init Workflow & Configuration
+- **Injection:** Merged into the report dataset by matching package names.
 
-**Goal:** Formalize the setup process for teams who want control.
+### 4.4. Caching & Triage Mode
 
-**2.1. Basic Init (`npx dep-report init`):**
+- **Cache Creation:** Successful runs save raw registry data to `.dep-report/.cache.json`.
 
-- Creates `./dep-report/reports/`.
-- Creates empty `notes.json`.
-- Adds `"dep:report": "dep-report"` to `package.json`.
+- **Refresh Flag (`--refresh`):** Skips network requests, loads from cache, re-applies config/notes, and regenerates reports instantly.
 
-**2.2. Eject Init (`npx dep-report init --include-config`):**
+### 4.5. Reporting Output
 
-- Creates full structure with `config.json`, `templates/`, and `bin/`.
+- **Markdown:** Table with columns: Package, Current, Latest, Risk, Age, Stale?, Notes.
 
-**2.3. Configuration Logic:**
+- **HTML:** Simplified HTML table mirroring the Markdown.
 
-- Update core logic to respect `config.json` (e.g., changing `staleThreshold` from "2 years" to "1 year").
+- **Snapshotting:** Write `YYYY-MM-DD_outdated.*` (daily overwrite) and `latest.*` (mirror).
 
-### Phase 3: Customization & Hooks
+### 4.6. CI/CD Gatekeeping
 
-**Goal:** Allow users to alter data and layout without forking the tool.
+- **Exit Codes:** Support flags (`--fail-if-stale`, `--fail-if-major`) to force non-zero exit codes.
 
-**3.1. Transform Hook:**
+## 5. Expected Interface
 
-- Load `./dep-report/bin/transform.js` if present.
-- Allow users to filter packages or add custom fields programmatically before rendering.
-
-**3.2. Custom Templates:**
-
-- Switch to Handlebars (or similar lightweight engine).
-- Check for `templates/markdown.hbs` to override default output format.
-
-### Phase 4: CI Integration & Reliability
-
-**Goal:** Make the tool robust for automated pipelines.
-
-**4.1. Gatekeeping:**
-
-- Add CLI flags: `--fail-if-stale` and `--fail-if-major`.
-- Return non-zero exit codes to break builds on high risk.
-
-**4.2. CI Recipes:**
-
-- Provide copy-paste patterns for GitHub Actions / GitLab CI (generating reports and uploading artifacts).
-
-## 4. Expected CLI Usage
-
-### Local Run (Standard)
+### Standard Audit (Fetches new data)
 
 ```bash
 npx dep-report
-# Generates ./dep-report/reports/YYYY-MM-DD_outdated.md
 ```
 
-### Setup (Simple)
+### Triage / Update (Uses cache, instant)
 
 ```bash
-npx dep-report init
+npx dep-report --refresh
 ```
 
-### Setup (Advanced)
+### Initialization
 
 ```bash
-npx dep-report init --include-config
-```
-
-### CI / Gatekeeping
-
-```bash
-npx dep-report --fail-if-stale
+npx dep-report init                 # Basic setup
+npx dep-report init --include-config # Eject config & templates
 ```
