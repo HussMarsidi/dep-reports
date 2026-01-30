@@ -12,29 +12,8 @@ A zero-config CLI tool that generates version-controlled snapshots of dependency
 - ⚡ Caching for instant triage workflows
 - 📁 Timestamped reports for audit trails
 
----
 
-## 1. Implementation Status
-
-### ✅ Completed (Phases 1-4)
-- Package manager detection (npm/pnpm/bun)
-- Outdated package scanning & normalization
-- Registry API enrichment with rate limiting
-- Age and risk calculation logic
-- Configuration system (`config.json`)
-- Notes/annotations (`notes.json`)
-- Caching with `--refresh` flag
-- Markdown & HTML report generation
-- `init` command for project scaffolding
-
-### ⏳ In Progress (Phase 5)
-- Comprehensive test suite
-- Publishing pipeline to npm
-- Final edge case validation
-
----
-
-## 2. Edge Cases & Mitigations
+## Edge Cases & Mitigations
 
 Quality assurance checklist for production readiness:
 
@@ -55,7 +34,7 @@ Quality assurance checklist for production readiness:
 
 ---
 
-## 3. Directory Structure
+## Directory Structure
 
 All tool artifacts live within the `./dep-report` namespace:
 
@@ -76,15 +55,15 @@ All tool artifacts live within the `./dep-report` namespace:
 │       └── ...
 ```
 
-## 4. Core Features
+## Core Features
 
-### 4.1 Data Pipeline
+### Data Pipeline
 - **Auto-Detection**: Identify package manager via lockfile presence
 - **Normalization**: Unified schema from disparate JSON outputs
 - **Enrichment**: Registry API calls for publish dates and age calculation
 - **Risk Classification**: Major/Minor/Patch based on semver diff
 
-### 4.2 Configuration (`config.json`)
+### Configuration (`config.json`)
 ```json
 {
   "staleThreshold": "18 months",
@@ -96,7 +75,7 @@ All tool artifacts live within the `./dep-report` namespace:
 }
 ```
 
-### 4.3 Annotations (`notes.json`)
+### Annotations (`notes.json`)
 ```json
 {
   "lodash": "Blocked by bug #1234",
@@ -105,22 +84,22 @@ All tool artifacts live within the `./dep-report` namespace:
 ```
 Annotations persist across report regeneration and appear in output tables.
 
-### 4.4 Caching & Triage
+### Caching & Triage
 - **First run**: Full scan with network enrichment → creates `.cache.json`
 - **`--refresh` flag**: Instant triage using cached data (no network calls)
 - Enables rapid iteration on config/notes without re-fetching
 
-### 4.5 Report Outputs
+### Report Outputs
 - **Markdown**: Table with Package | Current | Latest | Risk | Age | Stale? | Notes
 - **HTML**: Styled table with color-coded risk levels
 - **Timestamped**: `YYYY-MM-DD_outdated.*` (daily snapshot) + `latest.*` (symlink)
 
-### 4.6 CI/CD Integration
+### CI/CD Integration
 - **`--fail-if-stale`**: Exit 1 if any stale dependencies found
 - **`--fail-if-major`**: Exit 1 if any major version updates available
 - Enables automated dependency gatekeeping in pipelines
 
-## 5. CLI Interface
+## CLI Interface
 
 ### Basic Usage
 ```bash
