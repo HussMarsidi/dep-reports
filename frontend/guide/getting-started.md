@@ -4,115 +4,109 @@ description: Get your first dependency report in 5 minutes
 
 # Quick Start
 
-Get your first dependency report in 5 minutes.
+Generate your first dependency report in under 5 minutes.
 
-## Step 1: Run It
+## Run the Tool
 
 ```bash
 npx dep-report
 ```
 
-**What just happened?**
-1. ✓ Detected your package manager (npm/pnpm/bun)
-2. ✓ Scanned for outdated packages
-3. ✓ Enriched with publish dates from registry
-4. ✓ Generated reports in `.dep-report/reports/`
+**What happens:**
+1. Detects your package manager (npm, pnpm, or bun)
+2. Scans for outdated packages
+3. Fetches publish dates from the registry
+4. Generates timestamped reports in `.dep-report/reports/`
 
-⏱️ First run: ~10 seconds (network calls)  
-⏱️ Subsequent runs: ~1-2 seconds (cached)
+**Performance:**
+- First run: ~10 seconds (fetches metadata from registry)
+- Subsequent runs: ~1-2 seconds (uses cached data)
 
-## Step 2: View Your Report
+## View Your Report
 
 Open `.dep-report/reports/latest.html` in a browser.
 
-### What You're Looking At
+### Understanding the Columns
 
-Here's an annotated example of what you'll see:
+| Column | What It Shows | Example |
+|--------|---------------|---------|
+| **Package** | Dependency name | `axios` |
+| **Current** | Your installed version | `0.27.2` |
+| **Latest** | Available version | `1.6.0` |
+| **Risk** | Update type | `Major` |
+| **Age** | Time since YOUR version was published | `18 months` |
+| **Stale?** | Exceeds threshold (default: 18 months) | `Yes` |
+| **Notes** | Your custom context | `Planned for Q3` |
 
-```markdown
-┌────────────────────────────────────────────────────────────┐
-│ Package  Current  Latest  Risk    Age    Stale?  Notes    │
-│ ──────────────────────────────────────────────────────────│
-│ ① lodash  4.0.0    4.17.21 ②Major  ③5yr  ④Yes    -        │
-│ ⑤ react   17.0.2   18.2.0  Major   2yr    No     -        │
-└────────────────────────────────────────────────────────────┘
-```
+### Risk Levels
 
-**Column Guide:**
+- **Major** (`1.x → 2.x`): Breaking changes likely - review changelog carefully
+- **Minor** (`1.1 → 1.2`): New features, usually backward-compatible
+- **Patch** (`1.1.1 → 1.1.2`): Bug fixes, lowest risk
 
-① **Package**: What needs attention  
-② **Risk**: Major/Minor/Patch (breaking changes likely?)  
-③ **Age**: How old is YOUR installed version  
-④ **Stale**: Exceeds 18-month threshold  
-⑤ **Your data**: Real packages from your project
+### Understanding Age
 
-## Step 3: Understand the Data
-
-### Risk Levels (What to do)
-
-- 🔴 **Major**: Breaking changes likely (1.x → 2.x)
-  - **Action**: Schedule in sprint, test thoroughly
-  
-- 🟡 **Minor**: New features (1.1 → 1.2)  
-  - **Action**: Review changelog, low-risk update
-  
-- 🟢 **Patch**: Bug fixes (1.1.1 → 1.1.2)
-  - **Action**: Safe to batch with other patches
-
-### Age vs Latest Version
-
-**Key insight**: Age = time since YOUR version was published.
+**Age measures how long YOUR installed version has been published**, not the time since the latest version.
 
 **Example:**
-- You use `lodash@4.0.0` (published 5 years ago)
-- Latest is `lodash@4.17.21` (published yesterday)
-- **Your risk**: 5 years of accumulated CVEs, tech debt
+- You're using `axios@0.27.2` (published May 2022)
+- Latest is `axios@1.6.0` (published December 2023)
+- Age: 18 months
 
-### Stale Status
+An 18-month-old version has accumulated:
+- Potential security issues (even without CVEs)
+- Compatibility gaps with modern tooling
+- Missing performance improvements
+- Higher upgrade friction
 
-**Stale = Age > 18 months** (default, configurable)
+### Stale Threshold
 
-Why 18 months?
-- Security patches slow down
-- Community support decreases  
-- Upgrade friction increases exponentially
+**Default: 18 months**
 
-## Step 4: Add Context (Optional)
+Packages older than this are marked "stale." This threshold is configurable based on your team's needs.
 
-Found a package you can't upgrade yet?
+## Add Context with Notes
+
+Track why you haven't upgraded something:
 
 ```bash
-dep-report init  # Creates config structure
+dep-report init  # Creates configuration structure
 ```
 
 Edit `.dep-report/notes.json`:
 
 ```json
 {
-  "lodash": "Blocked by legacy auth module. Upgrade planned Q2 2026"
+  "axios": "Major version requires API migration. Planned for Q3 2026.",
+  "webpack": "Evaluating Vite as replacement"
 }
 ```
 
-Re-run `dep-report`—your note appears in the report.
+Run `dep-report` again—notes appear in the report.
 
-## What's Next?
+## What to Commit
 
-### For Solo Developers:
-→ [Learn: Reading Reports](/guide/understanding-reports)  
-Understand when to act on findings
+**Commit to git:**
+- `reports/` - The audit trail
+- `notes.json` - Your decision context
+- `config.json` - Team settings
 
-### For Teams:
-→ [Understanding Reports](/guide/understanding-reports)  
-Learn to interpret findings and prioritize updates
+**Don't commit:**
+- `.cache.json` - Registry metadata cache (automatically ignored)
 
-## Common First Questions
+## Common Questions
 
-**Q: Do I commit `.dep-report/` to git?**  
-A: Yes, commit `reports/`, `notes.json`, `config.json`.  
-   No, ignore `.cache.json` (already in `.gitignore`).
+**How often should I run this?**  
+Weekly for ongoing awareness. Before releases for rigor. The reports create a history of dependency health over time.
 
-**Q: How often should I run this?**  
-A: Weekly for awareness, before releases for rigor.
+**Does this update packages automatically?**  
+No. This is a reporting and decision-making tool. Use Renovate or Dependabot to automate the actual updates after you've decided what needs updating.
 
-**Q: Does this update packages for me?**  
-A: No. This is a **reporting tool**, not automation.
+**What if I have no outdated packages?**  
+You'll get a success report showing everything is current. This proves you checked, which is useful for audit trails and CI logs.
+
+## Next Steps
+
+- [Understanding Reports](/guide/understanding-reports) - Learn to interpret findings and prioritize updates
+- [Configuration](/guide/configuration) - Customize thresholds and behavior for your team
+- [Usage](/guide/usage) - Learn about caching and advanced options

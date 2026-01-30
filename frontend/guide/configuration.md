@@ -4,19 +4,15 @@ description: Complete configuration reference for dep-report - all options and e
 
 # Configuration
 
-## Philosophy
+dep-report works zero-config out of the box. Configuration lets you tune behavior for your team's needs.
 
-dep-report works zero-config.
+Create configuration files with:
 
-Configuration exists for tuning to YOUR team's needs:
-- Your "stale" might be 6 months (startup)
-- Your "stale" might be 3 years (regulated)
+```bash
+dep-report init
+```
 
-**Start with defaults. Configure when you feel friction.**
-
----
-
-Configuration is stored in `.dep-report/config.json`. Run `dep-report init` to create it.
+This creates `.dep-report/config.json` where you can customize settings.
 
 ## Configuration Options
 
@@ -43,22 +39,17 @@ Configuration is stored in `.dep-report/config.json`. Run `dep-report init` to c
 
 Duration string indicating when a package is considered "stale". Format: `"N days"`, `"N weeks"`, `"N months"`, or `"N years"`.
 
-**How to choose**:
-- **Fast-moving project?** 6-12 months
-- **Legacy system?** 2-3 years
-- **Somewhere between?** 18 months (default)
-
-**Examples**:
+**Common values:**
 - `"18 months"` (default) - Balanced for most projects
-- `"90 days"` - Aggressive, for security-critical apps
-- `"2 years"` - Conservative, for stable legacy systems
-- `"6 months"` - Startup pace, frequent updates
+- `"12 months"` - For teams with frequent updates
+- `"24 months"` - For stable, slow-moving projects
+- `"6 months"` - For security-critical applications
 
-**Tuning guidance:**
-- Start with default (18 months)
-- If you're ignoring most "stale" packages → increase threshold
-- If you're surprised by stale packages → decrease threshold
-- Review quarterly: Does your threshold match your upgrade velocity?
+**Tuning:**
+- Start with the default
+- If most "stale" packages seem fine, increase the threshold
+- If you're finding issues in packages below the threshold, decrease it
+- Review quarterly and adjust based on your actual update cadence
 
 ### `ignorePatterns` (string[])
 
@@ -70,14 +61,14 @@ Array of glob patterns to exclude from reports. Uses [minimatch](https://github.
 - `["package-name"]` - Ignore specific package
 - `["@types/*", "eslint-*", "typescript", "prettier"]` - Ignore dev dependencies
 
-**When to use:**
-- Dev-only dependencies you don't care about
-- Type definitions that auto-update with source
-- Tools that are "set and forget"
+**Typical use cases:**
+- Type definition packages (`@types/*`)
+- Dev tools that don't affect production (`eslint`, `prettier`)
+- Internal workspace packages
 
-**When NOT to use:**
-- Production dependencies (even if low-risk)
-- Packages you're "planning to upgrade" (use notes instead)
+**Better handled with notes:**
+- Packages you plan to upgrade later
+- Production dependencies (track them even if low-priority)
 
 ### `formats` (object)
 

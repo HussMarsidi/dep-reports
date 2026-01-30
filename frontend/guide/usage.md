@@ -1,112 +1,106 @@
 ---
-description: Usage guide for dep-report - basic commands, reports, notes, and caching
+description: Usage guide for dep-report - commands, reports, notes, and caching
 ---
 
 # Usage
 
-## Basic Usage
-
-Run in your project directory:
+## Basic Command
 
 ```bash
 dep-report
 ```
 
-This performs a full scan:
-1. Detects your package manager
-2. Scans for outdated packages
-3. Enriches with registry metadata
-4. Generates reports
+Scans your project, fetches registry metadata, and generates reports in `.dep-report/reports/`.
 
 ## Initialize Configuration
 
-To customize behavior, initialize the configuration:
+Create configuration files:
 
 ```bash
 dep-report init
 ```
 
 This creates:
-- `.dep-report/config.json` - Configuration settings
-- `.dep-report/notes.json` - Custom annotations
+- `.dep-report/config.json` - Settings (stale threshold, formats, etc.)
+- `.dep-report/notes.json` - Decision context for specific packages
 - `.dep-report/.gitignore` - Ignores cache files
 
-## Reports
+## Report Files
 
-Reports are generated in `.dep-report/reports/`:
-- `YYYY-MM-DD_outdated.md` - Daily snapshot (markdown)
-- `YYYY-MM-DD_outdated.html` - Daily snapshot (HTML)
-- `latest.md` - Always points to the most recent markdown report
-- `latest.html` - Always points to the most recent HTML report
+Generated in `.dep-report/reports/`:
 
-## Report Format
+```
+2026-01-30_outdated.html  # Timestamped snapshot
+2026-01-30_outdated.md    # Same data, markdown format
+latest.html               # Always points to newest
+latest.md                 # Always points to newest
+```
 
-Each report includes a table with:
-
-| Package | Current | Latest | Risk | Age | Stale? | Notes |
-|---------|---------|--------|------|-----|--------|-------|
-| lodash | 4.17.20 | 4.17.21 | Patch | 2 years | Yes | Known issue |
-
-### Risk Levels
-
-- **Major**: Breaking changes likely (1.x → 2.x)
-- **Minor**: New features (1.1 → 1.2)
-- **Patch**: Bug fixes (1.1.1 → 1.1.2)
-- **Exotic**: Non-semver (file:, git+, workspace:)
-- **NotInstalled**: Current version is `-` or empty
-
-### Age Calculation
-
-Age is calculated based on when the **currently installed version** was published, not when the latest version was published. This answers: "How old is the dependency we're actively using?"
-
-### Stale Status
-
-A package is marked as stale if its age exceeds your `staleThreshold` (default: 18 months).
+Commit timestamped reports to track dependency health over time.
 
 ## Adding Notes
 
-Edit `.dep-report/notes.json` to add custom annotations:
+Document why packages aren't upgraded. Edit `.dep-report/notes.json`:
 
 ```json
 {
-  "lodash": "Known issue: waiting for v2.0.0 release",
-  "axios": "Upgrade blocked by breaking changes"
+  "react": "Major version requires team training. Scheduled for Q3.",
+  "webpack": "Evaluating migration to Vite instead.",
+  "lodash": "Low usage, acceptable to defer."
 }
 ```
 
-Notes appear in reports next to the package entry.
+Notes appear in reports, creating self-documenting dependency history.
 
-## Caching & Refresh
+## Caching
 
-The tool caches registry data in `.dep-report/.cache.json` (gitignored).
+Registry metadata is cached in `.dep-report/.cache.json` (automatically ignored by git).
 
-### First Run
-- Full scan with network enrichment
-- Creates cache for future runs
+### Using Cache for Fast Iteration
 
-### Using Cache (Fast)
 ```bash
 dep-report --refresh
 ```
 
-Re-runs using cached data (no network calls). Perfect for:
-- Iterating on configuration
+Uses cached data instead of fetching from registry. Useful for:
+- Testing configuration changes
 - Updating notes
-- Quick re-renders
+- Regenerating reports with different formats
+
+Cache is automatically updated on regular `dep-report` runs.
+
+## Report Formats
+
+Control which formats are generated in `config.json`:
+
+```json
+{
+  "formats": {
+    "markdown": true,
+    "html": true
+  }
+}
+```
+
+- **HTML**: Best for stakeholder sharing and visual review
+- **Markdown**: Best for CI/CD and version control diffs
 
 ## Empty State
 
-If no outdated packages are found, the tool generates a success report:
+When all dependencies are current:
 
 ```markdown
 # Dependency Report (2026-01-30)
 ✅ All dependencies are up to date
 ```
 
-This creates an audit trail even when everything is clean.
+This creates an audit trail proving you checked, useful for:
+- Compliance documentation
+- CI/CD logs
+- Team accountability
 
 ## Next Steps
 
-- Learn about [Configuration](/guide/configuration) options
-- See [Examples](/guide/examples) for common scenarios
-- Check [Edge Cases](/guide/edge-cases) for limitations
+- [Configuration](/guide/configuration) - Customize thresholds and behavior
+- [Understanding Reports](/guide/understanding-reports) - Learn to interpret findings
+- [Examples](/guide/examples) - See common usage patterns

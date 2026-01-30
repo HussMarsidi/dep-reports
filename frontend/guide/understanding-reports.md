@@ -1,183 +1,171 @@
 ---
-description: Learn to interpret the data and decide when to act on dependency findings
+description: Learn to interpret dependency reports and prioritize updates
 ---
 
 # Reading Reports
 
-Learn to interpret the data and decide when to act.
+Understand what the data means and when to act.
 
-## Anatomy of a Report
+## The Columns Explained
 
-### The Table Columns
+### Package Name
+The dependency that needs attention.
 
-#### 1. Package
-Self-explanatory. The dependency name.
+### Current vs Latest
+- **Current**: Your installed version
+- **Latest**: Available version on registry
 
-#### 2. Current vs Latest
-- **Current**: What you have installed right now
-- **Latest**: What's available on the registry
+The version gap matters less than the age.
 
-**The gap matters less than age.**
+### Risk Level
 
-#### 3. Risk Level
+Based on semver version difference:
 
-Your upgrade risk based on semver:
+- **Major** (`1.x → 2.x`): Breaking changes likely
+- **Minor** (`1.1 → 1.2`): New features, backward-compatible
+- **Patch** (`1.1.1 → 1.1.2`): Bug fixes only
+- **Exotic**: Non-semver versions (`file:`, `git+`, `workspace:`)
+- **NotInstalled**: Listed in package.json but missing from node_modules
 
-- **Major** (🔴): `1.x → 2.x` - Breaking changes likely
-- **Minor** (🟡): `1.1 → 1.2` - New features, backward-compatible
-- **Patch** (🟢): `1.1.1 → 1.1.2` - Bug fixes only
-- **Exotic** (⚪): Non-semver (`file:`, `git+`, `workspace:`)
-- **NotInstalled** (❌): Listed but missing from node_modules
+### Age (Most Important)
 
-#### 4. Age ⭐ Most Important Column
-
-**Age = Time since your installed version was published.**
+**Time since YOUR installed version was published.**
 
 Not "how old is the latest version."  
-Not "when was it last updated."
+Not "time since last update."
 
-**Your actual risk in production.**
+**Your actual risk exposure.**
 
-**Example**:
+**Example:**
 ```
-lodash@4.0.0 → Latest: 4.17.21
-Age: 5 years ⚠️
+axios@0.27.2 → Latest: 1.6.0
+Published: May 2022 → Current: January 2026
+Age: 20 months
 ```
 
-A 5-year-old dependency has:
-- ✗ More accumulated CVEs
-- ✗ Less community support
-- ✗ Higher upgrade friction
-- ✗ Potential performance issues
-- ✗ Missing modern features
+A 20-month-old version has:
+- Accumulated security issues
+- Compatibility gaps with newer tools
+- Missing performance improvements
+- Higher migration effort
 
-**Age is compound risk.**
+**Age compounds risk over time.**
 
-#### 5. Stale Status
+### Stale Status
 
 **Stale = Age exceeds threshold** (default: 18 months)
 
-Visual indicator: ⚠️ or 🚨
-
 Why 18 months?
-- Security: Most projects slow patch releases after ~1 year
-- Community: Stack Overflow answers get stale
-- Dependencies: Peer deps may no longer work
-- Tooling: Build tools evolve, old packages break
+- Security patches typically slow after 12-18 months
+- Community support and documentation becomes outdated
+- Peer dependencies may no longer support old versions
+- Build tools evolve, creating compatibility issues
 
-**You can tune this.** See [Configuration](/guide/configuration).
+Configurable in `config.json` based on your team's risk tolerance.
 
-#### 6. Notes
+### Notes
 
-Your custom context. Answers:
-- "Why haven't we upgraded?"
-- "What's blocking this?"
-- "When are we planning to address this?"
+Your custom context for each package:
 
-**This is what makes the audit trail useful.**
+```json
+{
+  "react": "Breaking changes require team training. Q3 2026.",
+  "webpack": "Blocked by deprecated loaders. Evaluating Vite."
+}
+```
 
-## Reading the Report as a Whole
+This context makes reports useful months later when reviewing decisions.
 
-### The Audit Trail Concept
+## The Audit Trail
 
-Reports are timestamped: `YYYY-MM-DD_outdated.md`
+Reports are timestamped: `YYYY-MM-DD_outdated.html`
 
 ```
 .dep-report/reports/
-├── 2026-01-15_outdated.html  ← Pre-sprint
-├── 2026-01-30_outdated.html  ← Post-sprint
-└── latest.html               ← Always newest
+├── 2026-01-15_outdated.html  # Before sprint
+├── 2026-01-30_outdated.html  # After sprint
+└── latest.html               # Current state
 ```
 
-**Compare reports over time:**
-- "We reduced stale packages from 12 to 3 this quarter"
-- "These 5 packages have been stuck for 6 months—why?"
-- "Show management: here's our progress"
+Compare reports over time:
+- Track progress: "Reduced stale packages from 8 to 3 this quarter"
+- Identify stuck packages: "These 3 haven't been addressed in 6 months"
+- Show stakeholders: Documented evidence of dependency management
 
-**This is evidence, not just data.**
+## When to Act
 
-### Empty Reports Are Good
+### High Priority: Stale + Major
 
-If all deps are up-to-date:
+```
+| axios | 0.19.0 | 1.6.0 | Major | 24 months | Yes |
+```
+
+**Action:**
+1. Check for known CVEs
+2. Review breaking changes in changelog
+3. Schedule for next sprint
+4. Add note if blocked
+
+### Medium Priority: Stale + Minor
+
+```
+| express | 4.17.1 | 4.18.2 | Minor | 20 months | Yes |
+```
+
+**Action:**
+1. Review changelog for important fixes
+2. Plan for next month
+3. Test in staging first
+
+### Low Priority: Recent Minor/Patch
+
+```
+| next | 14.0.0 | 14.1.0 | Minor | 3 months | No |
+```
+
+**Action:**
+- Monitor and batch with other updates
+- Not urgent
+
+### Document: Blocked Updates
+
+```
+| react | 17.0.2 | 18.2.0 | Major | 18 months | Yes | "Team training scheduled Q3" |
+```
+
+**Action:**
+1. Add note explaining blocker
+2. Set reminder to revisit
+3. Re-evaluate quarterly
+
+Don't let notes get stale—review them regularly.
+
+## Decision Matrix
+
+| Age       | Risk  | Stale? | Priority              |
+|-----------|-------|--------|-----------------------|
+| >18 mo    | Major | Yes    | High (this sprint)    |
+| >18 mo    | Minor | Yes    | Medium (this month)   |
+| 12-18 mo  | Major | No     | Medium (plan ahead)   |
+| 12-18 mo  | Minor | No     | Low (quarterly)       |
+| <12 mo    | Any   | No     | Monitor               |
+
+**This is guidance, not rules.** Adjust based on your team's velocity and risk tolerance.
+
+## Empty Reports Are Good
+
+When everything is current:
 
 ```
 ✅ All dependencies are up to date
 ```
 
-**This proves you checked.** Useful in CI logs, audit trails.
-
-## When to Act
-
-### Immediate Action Required
-
-**Stale + Major = High Priority**
-
-```
-| axios | 0.19.0 | 1.6.0 | Major | 4 years | Stale |
-```
-
-This is a ticking time bomb.
-
-**Action**:
-1. Check for known CVEs
-2. Review breaking changes in changelog
-3. Schedule upgrade in next sprint
-4. Add note if blocked
-
-### Quarterly Review
-
-**Minor/Patch Updates + Not Stale**
-
-```
-| react | 18.0.0 | 18.2.0 | Minor | 8 months | No |
-```
-
-Not urgent, but don't ignore.
-
-**Action**:
-1. Batch with other minor updates
-2. Test in staging
-3. Deploy with next release
-
-### Monitor
-
-**Recent packages, small gaps**
-
-```
-| next | 14.0.0 | 14.1.0 | Minor | 2 months | No |
-```
-
-You're in good shape. Check again next quarter.
-
-### Document & Defer
-
-**Blocked upgrades**
-
-```
-| react | 17.0.2 | 18.2.0 | Major | 2 years | Stale | "Waiting for team training" |
-```
-
-**Action**:
-1. Add note explaining blocker
-2. Set reminder to revisit
-3. Re-evaluate blocker validity quarterly
-
-**Don't let notes get stale too.**
-
-## Decision Matrix
-
-| Age       | Risk  | Stale? | Action                      |
-|-----------|-------|--------|-----------------------------|
-| >2 years  | Major | Yes    | 🚨 Sprint this week         |
-| >2 years  | Minor | Yes    | 📅 Schedule this month      |
-| 1-2 years | Major | Yes    | 📅 Plan for next quarter    |
-| 1-2 years | Minor | No     | 🔄 Quarterly review         |
-| <1 year   | Any   | No     | ✅ Monitor                  |
-
-**This is guidance, not gospel.** Tune to your team's velocity and risk tolerance.
+This proves you checked. Useful for:
+- CI/CD logs
+- Compliance audits
+- Team accountability
 
 ## Next Steps
 
 - [Configuration](/guide/configuration) - Tune stale threshold for your needs
 - [Usage](/guide/usage) - Learn more about using dep-report
-- [Configuration](/guide/configuration) - Tune stale threshold for your needs
