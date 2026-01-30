@@ -61,7 +61,7 @@ program
       logger.info('Detecting package manager...');
       const detection = detectPackageManager(cwd);
       if (!detection) {
-        logger.error('No package manager detected. Please ensure you have package-lock.json, pnpm-lock.yaml, or bun.lockb in your project.');
+        logger.error('No package manager detected. Please ensure you have package-lock.json, pnpm-lock.yaml, bun.lock, or bun.lockb in your project.');
         process.exit(1);
       }
       logger.success(`Detected: ${detection.manager}`);

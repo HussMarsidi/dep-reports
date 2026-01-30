@@ -14,6 +14,7 @@ interface DetectionResult {
 export function detectPackageManager(cwd: string = process.cwd()): DetectionResult | null {
   const lockfiles: Array<{ file: string; manager: PackageManager }> = [
     { file: 'pnpm-lock.yaml', manager: 'pnpm' },
+    { file: 'bun.lock', manager: 'bun' },
     { file: 'bun.lockb', manager: 'bun' },
     { file: 'package-lock.json', manager: 'npm' },
   ];
