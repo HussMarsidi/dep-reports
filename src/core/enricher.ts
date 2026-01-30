@@ -1,4 +1,4 @@
-import type { OutdatedPackage, EnrichedPackage, RegistryResponse } from '../types/index.js';
+import type { EnrichedPackage, OutdatedPackage, RegistryResponse } from '../types/index.js';
 
 /**
  * Fetches package metadata from npm registry
