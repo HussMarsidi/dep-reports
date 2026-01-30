@@ -17,6 +17,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
+      { text: 'Why?', link: '/why' },
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'API Reference', link: '/api/cli' },
       { text: 'GitHub', link: 'https://github.com/hussmarsidi/dep-reports' }
@@ -25,9 +26,10 @@ export default defineConfig({
     sidebar: {
       '/guide/': [
         {
-          text: 'Getting Started',
+          text: 'Learn',
           items: [
-            { text: 'Introduction', link: '/guide/getting-started' },
+            { text: 'Quick Start', link: '/guide/getting-started' },
+            { text: 'Reading Reports', link: '/guide/understanding-reports' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Usage', link: '/guide/usage' },
             { text: 'Configuration', link: '/guide/configuration' },
