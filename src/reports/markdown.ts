@@ -35,7 +35,7 @@ export function generateMarkdownReport(
 
 Generated at: ${timestamp}
 
-All dependencies are up to date.
+✅ All dependencies are up to date
 `;
   }
 

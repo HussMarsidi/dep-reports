@@ -9,7 +9,8 @@ import { normalizeOutdatedOutput } from './core/normalizer.js';
 import { enrichPackages } from './core/enricher.js';
 import { analyzePackages } from './core/analyzer.js';
 import { generateMarkdownReport } from './reports/markdown.js';
-import { ensureNodeModules } from './utils/fs.js';
+import { generateHtmlReport } from './reports/html.js';
+import { ensureNodeModules, ensureWriteAccess } from './utils/fs.js';
 import { logger } from './utils/logger.js';
 import { format } from 'date-fns';
 import { loadConfig } from './config/loader.js';
@@ -57,6 +58,10 @@ program
       // Preflight checks
       logger.info('Checking prerequisites...');
       await ensureNodeModules(cwd);
+      
+      // Ensure write access to .dep-report directory
+      const depReportDir = join(cwd, '.dep-report');
+      await ensureWriteAccess(depReportDir);
 
       // Detect package manager
       logger.info('Detecting package manager...');
@@ -76,15 +81,25 @@ program
         
         // Handle empty state based on config
         if (config.reportEmptyState) {
-          const report = generateMarkdownReport([]);
           const reportsDir = join(cwd, '.dep-report', 'reports');
           if (!existsSync(reportsDir)) {
             mkdirSync(reportsDir, { recursive: true });
           }
           const dateStr = format(new Date(), 'yyyy-MM-dd');
-          writeFileSync(join(reportsDir, `${dateStr}_outdated.md`), report);
-          writeFileSync(join(reportsDir, 'latest.md'), report);
-          logger.success(`Report generated: .dep-report/reports/${dateStr}_outdated.md`);
+          
+          if (config.formats.markdown) {
+            const report = generateMarkdownReport([]);
+            writeFileSync(join(reportsDir, `${dateStr}_outdated.md`), report);
+            writeFileSync(join(reportsDir, 'latest.md'), report);
+            logger.success(`Report generated: .dep-report/reports/${dateStr}_outdated.md`);
+          }
+          
+          if (config.formats.html) {
+            const htmlReport = generateHtmlReport([]);
+            writeFileSync(join(reportsDir, `${dateStr}_outdated.html`), htmlReport);
+            writeFileSync(join(reportsDir, 'latest.html'), htmlReport);
+            logger.success(`HTML report generated: .dep-report/reports/${dateStr}_outdated.html`);
+          }
         }
         process.exit(0);
       }
@@ -94,17 +109,20 @@ program
       const normalized = normalizeOutdatedOutput(rawOutput);
 
       // Check registry connectivity before enrichment
-      logger.info('Checking registry connectivity...');
+      logger.startSpinner('Checking registry connectivity...');
       const isRegistryReachable = await checkRegistryConnectivity();
+      logger.stopSpinner();
       if (!isRegistryReachable) {
         logger.error('Unable to reach the npm registry.');
         logger.info('If you have a cache, try running with --refresh.');
         process.exit(1);
       }
+      logger.success('Registry connectivity confirmed');
 
       // Enrich with registry data (using config concurrency)
-      logger.info('Enriching packages with registry metadata...');
+      logger.startSpinner(`Enriching ${normalized.length} packages with registry metadata...`);
       const enriched = await enrichPackages(normalized, config.concurrency);
+      logger.stopSpinner();
       logger.success('Enrichment complete');
 
       // Parse stale threshold from config (Phase 2)
@@ -145,9 +163,13 @@ program
           logger.success(`Latest report: .dep-report/reports/latest.md`);
         }
 
-        // HTML report will be added in Phase 4
+        // Generate HTML report
         if (config.formats.html) {
-          logger.warn('HTML format not yet implemented (Phase 4)');
+          const htmlReport = generateHtmlReport(analyzed);
+          writeFileSync(join(reportsDir, `${dateStr}_outdated.html`), htmlReport);
+          writeFileSync(join(reportsDir, 'latest.html'), htmlReport);
+          logger.success(`HTML report generated: .dep-report/reports/${dateStr}_outdated.html`);
+          logger.success(`Latest HTML report: .dep-report/reports/latest.html`);
         }
       }
 
