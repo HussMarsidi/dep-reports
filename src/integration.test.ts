@@ -63,8 +63,6 @@ describe('integration', () => {
     // Note: This requires npm to be installed and may make network requests
     // In a real CI environment, you might want to mock the registry calls
 
-    const reportsDir = join(testProjectDir, '.dep-report', 'reports');
-
     // Run the CLI (this will fail if npm is not available, but that's okay for now)
     try {
       // First, ensure the CLI is built
