@@ -52,7 +52,7 @@ Create a professional documentation website hosted on GitHub Pages that provides
 
 ---
 
-### Option 1: VitePress ⭐ (RECOMMENDED)
+### Option 1: VitePress ⭐ (RECOMMENDED) (Selected)
 
 **What It Is**: Modern SSG (Static Site Generator) built on Vite, designed specifically for documentation.
 
