@@ -34,7 +34,8 @@
     "date-fns": "^4.1.0",
     "escape-html": "^1.0.3",
     "minimatch": "^10.0.1",
-    "semver": "^7.6.3"
+    "semver": "^7.6.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/escape-html": "^1.0.2",

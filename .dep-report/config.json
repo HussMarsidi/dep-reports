@@ -1,0 +1,14 @@
+{
+  "staleThreshold": "18 months",
+  "ignorePatterns": [],
+  "formats": {
+    "markdown": true,
+    "html": true
+  },
+  "concurrency": 5,
+  "failConditions": {
+    "stale": false,
+    "major": false
+  },
+  "reportEmptyState": true
+}
