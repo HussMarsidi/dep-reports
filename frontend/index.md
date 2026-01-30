@@ -151,56 +151,32 @@ Export complete logic with `--include-config`. Modify report templates. Customiz
 
 **No proprietary algorithms. No black boxes.**
 
-## Next Steps
-
-### Get Started
-
-Generate your first dependency report in 5 minutes.
-
-```bash
-npx dep-report
-```
-
-[Read the getting started guide →](/guide/getting-started)
-
-### Review & Analysis
+## Learn More
 
 - [Understanding Reports](/guide/understanding-reports) — Learn to interpret findings and prioritize updates
 - [Team Workflows](/guide/workflows) — Establish weekly triage and quarterly review processes
-
-### Automation
-
 - [GitHub Actions Integration](/integrate/github-actions) — Automated dependency monitoring and gates
+- [Why dep-report?](/why) — Understand the philosophy and benefits
 
-## Deploy from CLI
+## Advanced Usage
 
-### Track dependencies in CI
+### CI/CD Integration
 
 ```bash
 npx dep-report --ci
 ```
 
-This command generates reports in your CI pipeline for continuous monitoring.
+Generates reports in your CI pipeline for continuous monitoring.
 
-### Generate custom reports
+### Export Configuration
 
 ```bash
 npx dep-report --include-config
 ```
 
-For complete configuration options, see [our CLI reference](/cli/reference).
+Exports templates and logic for full transparency and customization.
 
-## Discover More
-
-Try out dep-report in minutes and learn how to get the most out of dependency evidence trails.
-
-### Speed up your workflow with automated reporting
-
-[Start Automation Tutorial](/guide/automation)
-
-### Discover the benefits of evidence-based dependency management
-
-[Learn More](/why)
+For complete configuration options, see [CLI reference](/api/cli).
 
 ## Join the Community
 
