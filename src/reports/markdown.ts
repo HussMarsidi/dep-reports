@@ -21,20 +21,6 @@ function formatAge(age: number | null): string {
 }
 
 /**
- * Formats risk with emoji for visual clarity
- */
-function formatRisk(risk: string): string {
-  const emoji: Record<string, string> = {
-    Major: '🔴',
-    Minor: '🟡',
-    Patch: '🟢',
-    Exotic: '⚪',
-    NotInstalled: '⚫',
-  };
-  return `${emoji[risk] || ''} ${risk}`;
-}
-
-/**
  * Generates markdown report from enriched packages
  */
 export function generateMarkdownReport(
@@ -49,7 +35,7 @@ export function generateMarkdownReport(
 
 Generated at: ${timestamp}
 
-✅ All dependencies are up to date
+All dependencies are up to date.
 `;
   }
 
@@ -84,8 +70,8 @@ Generated at: ${timestamp}
 
   for (const pkg of sorted) {
     const ageStr = formatAge(pkg.age);
-    const riskStr = formatRisk(pkg.risk);
-    const staleStr = pkg.isStale ? '⚠️ Yes' : '✅ No';
+    const riskStr = pkg.risk;
+    const staleStr = pkg.isStale ? 'Yes' : 'No';
     const noteStr = pkg.note || '';
 
     markdown += `| ${pkg.name} | ${pkg.current} | ${pkg.latest} | ${riskStr} | ${ageStr} | ${staleStr} | ${noteStr} |\n`;

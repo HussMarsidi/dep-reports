@@ -3,19 +3,19 @@
  */
 export const logger = {
   info: (message: string) => {
-    console.log(`ℹ️  ${message}`);
+    console.log(`[INFO] ${message}`);
   },
   success: (message: string) => {
-    console.log(`✅ ${message}`);
+    console.log(`[OK] ${message}`);
   },
   warn: (message: string) => {
-    console.warn(`⚠️  ${message}`);
+    console.warn(`[WARN] ${message}`);
   },
   error: (message: string) => {
-    console.error(`❌ ${message}`);
+    console.error(`[ERROR] ${message}`);
   },
   progress: (current: number, total: number, message: string) => {
-    process.stdout.write(`\r⏳ ${message} (${current}/${total})`);
+    process.stdout.write(`\r${message} (${current}/${total})`);
     if (current === total) {
       process.stdout.write('\n');
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { detectPackageManager } from './core/detector.js';
 import { scanOutdated } from './core/scanner.js';
@@ -14,11 +14,14 @@ import { logger } from './utils/logger.js';
 import { format } from 'date-fns';
 
 const program = new Command();
+const packageJsonPath = new URL('../package.json', import.meta.url);
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { version?: string };
+const packageVersion = packageJson.version ?? '0.0.0';
 
 program
   .name('dep-report')
   .description('Zero-config CLI tool that generates version-controlled snapshots of dependency risk')
-  .version('1.0.0');
+  .version(packageVersion);
 
 // Default command (audit)
 program
@@ -60,7 +63,7 @@ program
 
       // Normalize output
       logger.info(`Found ${Object.keys(rawOutput).length} outdated packages`);
-      const normalized = normalizeOutdatedOutput(rawOutput, detection.manager);
+      const normalized = normalizeOutdatedOutput(rawOutput);
 
       // Enrich with registry data
       logger.info('Enriching packages with registry metadata...');

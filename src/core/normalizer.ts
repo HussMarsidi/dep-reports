@@ -4,8 +4,7 @@ import type { OutdatedPackage, RawOutdatedOutput } from '../types/index.js';
  * Normalizes different package manager outputs into a unified schema
  */
 export function normalizeOutdatedOutput(
-  rawOutput: RawOutdatedOutput,
-  manager: 'npm' | 'pnpm' | 'bun'
+  rawOutput: RawOutdatedOutput
 ): OutdatedPackage[] {
   const packages: OutdatedPackage[] = [];
 
