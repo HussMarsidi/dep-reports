@@ -261,6 +261,29 @@ h2 {
   margin: 4rem 0 1.5rem 0;
   padding-bottom: 0;
   border-bottom: none;
+  color: var(--vp-c-brand);
+  transition: text-decoration 0.2s ease-in-out;
+  display: inline-block;
+}
+
+h2:hover {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--vp-c-brand);
+  text-underline-offset: 0.3em;
+}
+
+/* Style the anchor link that VitePress adds */
+h2 a.header-anchor {
+  color: var(--vp-c-brand);
+  text-decoration: none;
+  margin-left: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+h2:hover a.header-anchor {
+  opacity: 1;
 }
 
 h2:first-of-type {
@@ -321,5 +344,10 @@ section,
 p strong:first-child {
   display: inline-block;
   margin-right: 0.5rem;
+}
+
+/* Smooth scroll for anchor links */
+html {
+  scroll-behavior: smooth;
 }
 </style>
