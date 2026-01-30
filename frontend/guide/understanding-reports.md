@@ -178,6 +178,6 @@ You're in good shape. Check again next quarter.
 
 ## Next Steps
 
-- [Making Decisions](/guide/making-decisions) - How teams should use reports
-- [Team Workflows](/guide/workflows) - Weekly triage, quarterly audits
+- [Configuration](/guide/configuration) - Tune stale threshold for your needs
+- [Usage](/guide/usage) - Learn more about using dep-report
 - [Configuration](/guide/configuration) - Tune stale threshold for your needs

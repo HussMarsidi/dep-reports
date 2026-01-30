@@ -154,8 +154,6 @@ Export complete logic with `--include-config`. Modify report templates. Customiz
 ## Learn More
 
 - [Understanding Reports](/guide/understanding-reports) — Learn to interpret findings and prioritize updates
-- [Team Workflows](/guide/workflows) — Establish weekly triage and quarterly review processes
-- [GitHub Actions Integration](/integrate/github-actions) — Automated dependency monitoring and gates
 - [Why dep-report?](/why) — Understand the philosophy and benefits
 
 ## Advanced Usage

@@ -242,4 +242,4 @@ Fails if any package is stale (regardless of risk level).
 
 - See [Examples](/guide/examples) for more configuration scenarios
 - Learn about [CLI Commands](/api/cli) for programmatic usage
-- [Team Workflows](/guide/workflows) - How teams use configuration
+- [Understanding Reports](/guide/understanding-reports) - Learn to interpret findings

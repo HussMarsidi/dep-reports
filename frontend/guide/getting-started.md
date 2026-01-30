@@ -102,12 +102,8 @@ Re-run `dep-report`—your note appears in the report.
 Understand when to act on findings
 
 ### For Teams:
-→ [Learn: Team Workflows](/guide/workflows)  
-Weekly triage, quarterly reviews, audit trails
-
-### For CI/CD:
-→ [Integrate: GitHub Actions](/integrate/github-actions)  
-Automated dependency gates
+→ [Understanding Reports](/guide/understanding-reports)  
+Learn to interpret findings and prioritize updates
 
 ## Common First Questions
 
