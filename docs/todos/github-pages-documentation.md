@@ -28,8 +28,8 @@ Create a professional documentation website hosted on GitHub Pages that provides
 
 ### Current State
 - README.md contains basic documentation (253 lines)
-- docs/PROJECT.md has decision logs and architecture
-- docs/summary.md has requirements
+- frontend/PROJECT.md has decision logs and architecture
+- frontend/summary.md has requirements
 - No interactive/searchable documentation site
 
 ### Desired State
@@ -76,7 +76,7 @@ Create a professional documentation website hosted on GitHub Pages that provides
 
 **Typical File Structure**:
 ```
-docs/
+frontend/
 ├── .vitepress/
 │   └── config.js          # Site config (20-30 lines)
 ├── index.md               # Home page
@@ -128,7 +128,7 @@ docs/
 website/
 ├── docusaurus.config.js   # Main config (100+ lines)
 ├── sidebars.js            # Navigation structure
-├── docs/
+├── frontend/
 │   ├── intro.md
 │   └── api/
 ├── src/
@@ -174,7 +174,7 @@ website/
 
 **Typical File Structure**:
 ```
-docs/
+frontend/
 ├── mkdocs.yml             # All config (30-50 lines)
 ├── index.md
 ├── guide/
@@ -231,10 +231,10 @@ docs/
    - Configure site metadata (title, description, base URL)
 
 2. **Content Migration**
-   - Convert README.md → docs/index.md (home page)
+   - Convert README.md → frontend/index.md (home page)
    - Convert README.md sections → separate guide pages
-   - Migrate docs/PROJECT.md → Advanced section
-   - Migrate docs/summary.md → Reference section
+   - Migrate frontend/PROJECT.md → Advanced section (not needed, internal documentation)
+   - Migrate frontend/summary.md → Reference section (not needed, internal documentation)
 
 3. **Navigation Structure**
    ```
@@ -378,7 +378,7 @@ docs/
 | Edge Case | Impact | Mitigation |
 |-----------|--------|------------|
 | **Outdated examples** | Confusion | Add version badges to examples; automated testing of code samples |
-| **README.md vs docs divergence** | Inconsistency | Single source of truth (docs/); auto-generate README sections |
+| **README.md vs frontend divergence** | Inconsistency | Single source of truth (frontend/); auto-generate README sections |
 | **Breaking changes in VitePress** | Site breaks | Pin VitePress version; test upgrades in branch before merging |
 | **Missing code highlighting** | Poor readability | Configure Shiki with all needed languages (typescript, bash, json, yaml) |
 
@@ -409,45 +409,45 @@ docs/
 
 ```
 README.md
-├── Lines 1-40   → docs/index.md (Hero section + Quick Start)
-├── Lines 41-62  → docs/guide/usage.md
-├── Lines 63-133 → docs/guide/configuration.md
-├── Lines 134-178 → docs/guide/examples.md
-└── Lines 179-253 → docs/guide/edge-cases.md
+├── Lines 1-40   → frontend/index.md (Hero section + Quick Start)
+├── Lines 41-62  → frontend/guide/usage.md
+├── Lines 63-133 → frontend/guide/configuration.md
+├── Lines 134-178 → frontend/guide/examples.md
+└── Lines 179-253 → frontend/guide/edge-cases.md
 
-docs/PROJECT.md
-├── Overview     → docs/advanced/overview.md
-├── ADRs         → docs/advanced/decisions.md
-└── Changelog    → docs/advanced/changelog.md
+frontend/PROJECT.md
+├── Overview     → frontend/advanced/overview.md
+├── ADRs         → frontend/advanced/decisions.md
+└── Changelog    → frontend/advanced/changelog.md
 
-docs/summary.md
-├── Edge Cases   → docs/reference/edge-cases.md
-├── Directory    → docs/reference/structure.md
-└── Features     → docs/reference/features.md
+frontend/summary.md
+├── Edge Cases   → frontend/reference/edge-cases.md
+├── Directory    → frontend/reference/structure.md
+└── Features     → frontend/reference/features.md
 ```
 
 ### New Content to Create
 
-1. **docs/guide/installation.md**
+1. **frontend/guide/installation.md**
    - npm/pnpm/bun install commands
    - npx usage
    - System requirements
    - Troubleshooting installation
 
-2. **docs/api/cli.md**
+2. **frontend/api/cli.md**
    - `dep-report` (default command)
    - `dep-report init`
    - `dep-report --refresh`
    - All flags with types and defaults
    - Exit codes
 
-3. **docs/api/config-schema.md**
+3. **frontend/api/config-schema.md**
    - JSON schema documentation
    - Type definitions
    - Validation rules
    - Examples for each option
 
-4. **docs/guide/ci-cd.md**
+4. **frontend/guide/ci-cd.md**
    - GitHub Actions example
    - GitLab CI example
    - Azure Pipelines example
@@ -476,7 +476,7 @@ docs/summary.md
 - Build docs
 - Deploy to gh-pages branch
 
-### 3. `docs/package.json`
+### 3. `frontend/package.json`
 **Purpose**: VitePress dependencies  
 **Size**: ~15 lines  
 **Scripts**:
@@ -490,7 +490,7 @@ docs/summary.md
 }
 ```
 
-### 4. `docs/.vitepress/theme/custom.css` (optional)
+### 4. `frontend/.vitepress/theme/custom.css` (optional)
 **Purpose**: Brand colors and minor tweaks  
 **Size**: ~20-30 lines  
 **Customizations**:
@@ -531,12 +531,12 @@ docs/summary.md
 - [ ] Review all existing documentation for content gaps
 - [ ] Identify reusable code examples
 - [ ] Collect common user questions (future FAQ section)
-- [ ] Decide on repository structure (docs/ subfolder vs separate repo)
+- [ ] Decide on repository structure (frontend/ subfolder vs separate repo)
 
 ### Phase 1: Setup
 - [ ] Install VitePress in project
 - [ ] Create basic config with site metadata
-- [ ] Migrate README → docs/index.md
+- [ ] Migrate README → frontend/index.md
 - [ ] Create initial navigation structure
 - [ ] Setup GitHub Actions workflow
 - [ ] Configure GitHub Pages settings
@@ -576,8 +576,8 @@ docs/summary.md
 ## Open Questions
 
 1. **Repository Structure**
-   - Keep docs in same repo (easier maintenance) ✅ RECOMMENDED
-   - OR separate docs repo (cleaner but more overhead)
+   - Keep frontend in same repo (easier maintenance) ✅ RECOMMENDED
+   - OR separate frontend repo (cleaner but more overhead)
 
 2. **URL Structure**
    - `username.github.io/dep-reports/` (repo-based)
