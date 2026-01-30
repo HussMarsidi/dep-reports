@@ -6,6 +6,7 @@ Minimal checklist for testers to validate basic CLI behavior.
 - Run from repo root: `/Users/hussmarsidi/Desktop/Dev/dep-reports`
 - Ensure a lockfile exists (`bun.lock`, `bun.lockb`, `pnpm-lock.yaml`, or `package-lock.json`)
 - Ensure `node_modules/` exists
+- All test to be done in example/ folder
 
 ## Smoke Test Steps (Minimal)
 1. Init scaffold
