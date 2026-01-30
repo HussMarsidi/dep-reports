@@ -1,0 +1,47 @@
+{
+  "name": "dep-report",
+  "version": "0.0.1",
+  "description": "Zero-config CLI tool that generates version-controlled snapshots of dependency risk",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "dep-report": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --minify --out-dir dist",
+    "dev": "bun run src/cli.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "dependencies",
+    "audit",
+    "outdated",
+    "npm",
+    "pnpm",
+    "bun"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0",
+    "date-fns": "^4.1.0",
+    "escape-html": "^1.0.3",
+    "minimatch": "^10.0.1",
+    "semver": "^7.6.3"
+  },
+  "devDependencies": {
+    "@types/escape-html": "^1.0.2",
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^22.10.2",
+    "@types/semver": "^7.5.8",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
