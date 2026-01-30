@@ -19,52 +19,93 @@ hero:
 ---
 
 ## Quick Start
-
 ```bash
 npx dep-report
 ```
 
-Then continue [reading your first report](/guide/understanding-reports).
+Generates a timestamped dependency report showing:
+- Which packages are outdated
+- How long since they were updated
+- Major vs minor vs patch updates
+- Saved to `.dep-report/reports/` for audit trail
 
----
+First run takes ~10s (fetching metadata), then ~1-2s cached.
 
-## The Problem with Dependency Management
+[Reading and using reports](/guide/understanding-reports)
 
-Your team ignores dependency updates until a critical CVE forces a scramble, builds break from 3-year-old packages, or management asks "why is our tech debt so high?"
+## The Problem
 
-You know you should update dependencies. But **when?** **Which ones?** **Why these and not those?**
+Dependency updates pile up. You get bombarded with automated PRs but can't tell which ones actually matter. No context, just version bumps.
+
+A security advisory drops and you're scrambling to figure out your exposure. A build breaks because some package hasn't been touched in 3 years. Management asks about technical debt and you're pulling together an answer on the spot.
+
+The real issue isn't automation - it's visibility. You need to see what's outdated, understand the risk, and have evidence for your decisions. Not just a flood of PRs.
 
 **Renovate/Dependabot create noise. dep-report creates evidence.**
 
----
+## The Automation Problem
 
-## Traditional Tools vs. Evidence-Based Approach
+Automated dependency tools are great at creating PRs. They're terrible at helping you decide which PRs matter.
+
+You end up with a pile of open PRs, no context about what's actually important, and no record of why you updated (or didn't update) something months ago.
+
+dep-report flips this: it gives you visibility first. Generate reports showing what's outdated. Review them with your team. Make decisions based on actual data. Build a history of those decisions.
+
+Then use automation tools to execute the updates you've decided on. Complementary, not competitive.
 
 <div class="comparison-wrapper">
+<div class="comparison-item">
+### With Automated PRs
 
-### Renovate / Dependabot
-Automation-first approach
+You have 47 open Renovate PRs:
+- `axios: 0.27.2 → 1.6.0`
+- `react: 18.2.0 → 18.3.1`
+- `lodash: 4.17.19 → 4.17.21`
+- ... 44 more
 
-- 47 open pull requests
-- Constant merge conflicts
-- Noise-driven decision making
-- No context or audit trail
-- Opinionated automation
+**Your questions:**
+- Which ones are breaking changes?
+- Which have security fixes?
+- Can I batch these?
+- Why did we skip the last update?
 
-### dep-report
-Evidence-first approach
+**Your answer:** ¯\\\_(ツ)_/¯
 
-- Single timestamped audit trail
-- Complete context with annotations
-- Evidence-based decision making
-- Full transparency and history
-- Zero-opinion documentation
+No context. No history. Just version bumps.
+</div>
+<div class="comparison-item">
+### With dep-report
 
+You run `npx dep-report` and get:
+```json
+{
+  "axios": {
+    "current": "0.27.2",
+    "latest": "1.6.0",
+    "age": "728 days",
+    "type": "major"
+  },
+  "react": {
+    "current": "18.2.0", 
+    "latest": "18.3.1",
+    "age": "145 days",
+    "type": "minor"
+  }
+}
+```
+
+**Your decisions:**
+- axios: major update, research breaking changes first
+- react: safe minor, batch with next sprint
+- lodash: patch security fix, update today
+
+**Six months later:** Check previous reports to see why you're still on axios 0.27.2. Find notes about blocking issues in 1.x.
+
+You have context. You have history. You make informed decisions.
+</div>
 </div>
 
-**We're complementary, not competitive.** Use dep-report for visibility and decision-making. Use Renovate for automation after you've established your update strategy.
-
----
+**The workflow:** Use dep-report to understand and decide. Use Renovate to automate the execution.
 
 ## How It Works
 
@@ -90,8 +131,6 @@ Creates timestamped reports in `.dep-report/reports/`
 
 [View example report →](/guide/getting-started#what-you-just-generated)
 
----
-
 ## Core Principles
 
 ### Evidence-Based Documentation
@@ -111,8 +150,6 @@ Run manually, integrate into CI pipelines, or add to pre-commit hooks. No automa
 Export complete logic with `--include-config`. Modify report templates. Customize scoring algorithms. Inspect and adjust every aspect of the tool.
 
 **No proprietary algorithms. No black boxes.**
-
----
 
 ## Next Steps
 
@@ -135,8 +172,6 @@ npx dep-report
 
 - [GitHub Actions Integration](/integrate/github-actions) — Automated dependency monitoring and gates
 
----
-
 ## Deploy from CLI
 
 ### Track dependencies in CI
@@ -155,8 +190,6 @@ npx dep-report --include-config
 
 For complete configuration options, see [our CLI reference](/cli/reference).
 
----
-
 ## Discover More
 
 Try out dep-report in minutes and learn how to get the most out of dependency evidence trails.
@@ -169,8 +202,6 @@ Try out dep-report in minutes and learn how to get the most out of dependency ev
 
 [Learn More](/why)
 
----
-
 ## Join the Community
 
 See the source code, connect with others, and share your feedback.
@@ -180,8 +211,6 @@ See the source code, connect with others, and share your feedback.
 [Discussions](https://github.com/hussmarsidi/dep-reports/discussions) — Ask questions and share your setup
 
 [Issues](https://github.com/hussmarsidi/dep-reports/issues) — Report bugs or request features
-
----
 
 <style>
 /* Comparison Wrapper */
@@ -193,37 +222,54 @@ See the source code, connect with others, and share your feedback.
 }
 
 .comparison-wrapper > div,
-.comparison-wrapper > section {
+.comparison-wrapper > section,
+.comparison-item {
   padding: 1.5rem;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
   background: var(--vp-c-bg-soft);
 }
 
-.comparison-wrapper h3 {
+.comparison-item h3 {
   margin-top: 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--vp-c-text-1);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.comparison-wrapper p {
-  margin: 0 0 1rem 0;
-  font-size: 0.875rem;
-  color: var(--vp-c-text-2);
-}
-
-.comparison-wrapper ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.comparison-wrapper li {
-  padding: 0.5rem 0;
-  color: var(--vp-c-text-2);
+.comparison-item p {
+  margin: 1rem 0;
   line-height: 1.6;
+  color: var(--vp-c-text-1);
+}
+
+.comparison-item ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.comparison-item li {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+  color: var(--vp-c-text-1);
+}
+
+.comparison-item code {
+  background: var(--vp-c-bg-alt);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.comparison-item pre {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.comparison-item strong {
+  font-weight: 600;
+  color: var(--vp-c-text-1);
 }
 
 @media (max-width: 768px) {
@@ -236,9 +282,13 @@ See the source code, connect with others, and share your feedback.
 h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  margin: 3rem 0 1.5rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--vp-c-divider);
+  margin: 4rem 0 1.5rem 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+h2:first-of-type {
+  margin-top: 2rem;
 }
 
 h3 {
@@ -285,11 +335,10 @@ li {
   line-height: 1.6;
 }
 
-/* Horizontal Rules */
-hr {
-  margin: 3rem 0;
-  border: none;
-  border-top: 1px solid var(--vp-c-divider);
+/* Section Spacing */
+section,
+.section-content {
+  margin-bottom: 2rem;
 }
 
 /* Performance Metrics */
