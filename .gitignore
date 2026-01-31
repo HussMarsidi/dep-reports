@@ -7,3 +7,8 @@ dist/
 .cache.json
 .dep-report/
 examples/
+.sandbox-cache/
+sandbox/fixtures/**/.dep-report/
+sandbox/fixtures/**/node_modules/
+.test-integration/
+.test-init/
