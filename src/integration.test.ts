@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { exec, execSync } from 'child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { promisify } from 'util';
 import { MockRegistry } from './core/enricher.js';
 import { mockRegistryData } from './test/fixtures/mock-registry-data.js';
