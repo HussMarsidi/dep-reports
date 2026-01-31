@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
-import { MockRegistry } from '../core/enricher.js';
-import { mockRegistryData } from '../../test/fixtures/mock-registry-data.js';
+import { MockRegistry } from './core/enricher.js';
+import { mockRegistryData } from '../test/fixtures/mock-registry-data.js';
 
 const execAsync = promisify(exec);
 
@@ -217,7 +217,7 @@ describe('Full audit workflow', () => {
 
 describe('Package enrichment with mock registry', () => {
   test('enriches packages with registry metadata', async () => {
-    const { enrichPackage } = await import('../core/enricher.js');
+    const { enrichPackage } = await import('./core/enricher.js');
     
     const mockRegistry = new MockRegistry(mockRegistryData);
     const mockNow = new Date('2026-01-31');
@@ -243,7 +243,7 @@ describe('Package enrichment with mock registry', () => {
 
 describe('Report generation', () => {
   test('analyzed packages match snapshot', async () => {
-    const { analyzePackages } = await import('../core/analyzer.js');
+    const { analyzePackages } = await import('./core/analyzer.js');
     
     const mockPackages = [
       {

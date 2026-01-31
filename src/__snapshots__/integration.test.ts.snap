@@ -1,0 +1,18 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Report generation analyzed packages match snapshot 1`] = `
+[
+  {
+    "age": 3287,
+    "current": "4.0.0",
+    "currentPublishedAt": 2015-01-26T00:00:00.000Z,
+    "isStale": true,
+    "latest": "4.17.21",
+    "latestPublishedAt": 2021-05-06T00:00:00.000Z,
+    "name": "lodash",
+    "risk": "Minor",
+    "type": "dependencies",
+    "wanted": "4.17.21",
+  },
+]
+`;
