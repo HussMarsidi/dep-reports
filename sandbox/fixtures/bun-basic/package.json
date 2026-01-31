@@ -1,0 +1,20 @@
+{
+  "name": "sandbox-bun-basic",
+  "version": "1.0.0",
+  "description": "Test fixture: 10 packages with varied ages (bun)",
+  "private": true,
+  "dependencies": {
+    "lodash": "4.0.0",
+    "express": "4.16.0",
+    "axios": "0.21.1",
+    "commander": "8.0.0",
+    "chalk": "4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "16.0.0",
+    "typescript": "4.5.3",
+    "prettier": "2.5.0",
+    "eslint": "8.0.0",
+    "vitest": "0.25.0"
+  }
+}

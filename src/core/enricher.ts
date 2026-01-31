@@ -1,39 +1,59 @@
 import type { EnrichedPackage, OutdatedPackage, RegistryResponse } from '../types/index.js';
 
-/**
- * Fetches package metadata from npm registry
- */
-async function fetchPackageMetadata(packageName: string, registry: string = 'https://registry.npmjs.org'): Promise<RegistryResponse | null> {
-  try {
-    const url = `${registry}/${encodeURIComponent(packageName)}`;
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+// Registry abstraction (inline)
+export interface IPackageRegistry {
+  getMetadata(packageName: string): Promise<RegistryResponse | null>;
+}
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null; // Package not found
+// Default implementation
+class NpmRegistryImpl implements IPackageRegistry {
+  constructor(private baseUrl: string = 'https://registry.npmjs.org') {}
+  
+  async getMetadata(packageName: string): Promise<RegistryResponse | null> {
+    try {
+      const url = `${this.baseUrl}/${encodeURIComponent(packageName)}`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`Registry request failed: ${response.status}`);
       }
-      throw new Error(`Registry request failed: ${response.status} ${response.statusText}`);
+      
+      return await response.json() as RegistryResponse;
+    } catch (error) {
+      return null;
     }
-
-    return await response.json() as RegistryResponse;
-  } catch (error) {
-    // Network errors, timeouts, etc.
-    return null;
   }
 }
+
+// Export for testing
+export class MockRegistry implements IPackageRegistry {
+  constructor(private data: Record<string, RegistryResponse>) {}
+  
+  async getMetadata(packageName: string): Promise<RegistryResponse | null> {
+    return this.data[packageName] || null;
+  }
+}
+
+// Default instance
+const defaultRegistry: IPackageRegistry = new NpmRegistryImpl();
 
 /**
  * Enriches a single package with registry metadata
  */
 export async function enrichPackage(
   pkg: OutdatedPackage,
-  registry: string = 'https://registry.npmjs.org'
+  registryOrUrl: string | IPackageRegistry = defaultRegistry,
+  now: Date = new Date()
 ): Promise<EnrichedPackage> {
-  const metadata = await fetchPackageMetadata(pkg.name, registry);
+  // Handle backwards compatibility
+  const registry = typeof registryOrUrl === 'string' 
+    ? new NpmRegistryImpl(registryOrUrl)
+    : registryOrUrl;
+    
+  const metadata = await registry.getMetadata(pkg.name);
 
   if (!metadata || !metadata.time) {
     return {
@@ -52,7 +72,7 @@ export async function enrichPackage(
   // Calculate age in days since current version was published
   let age: number | null = null;
   if (currentPublishedAt) {
-    const ageInMs = Date.now() - currentPublishedAt.getTime();
+    const ageInMs = now.getTime() - currentPublishedAt.getTime();
     age = Math.floor(ageInMs / (1000 * 60 * 60 * 24)); // Convert to days
   }
 
@@ -72,15 +92,21 @@ export async function enrichPackage(
 export async function enrichPackages(
   packages: OutdatedPackage[],
   concurrency: number = 5,
-  registry: string = 'https://registry.npmjs.org'
+  registryOrUrl: string | IPackageRegistry = defaultRegistry,
+  now: Date = new Date()
 ): Promise<EnrichedPackage[]> {
+  // Handle backwards compatibility
+  const registry = typeof registryOrUrl === 'string' 
+    ? new NpmRegistryImpl(registryOrUrl)
+    : registryOrUrl;
+    
   const results: EnrichedPackage[] = [];
   
   // Process in batches
   for (let i = 0; i < packages.length; i += concurrency) {
     const batch = packages.slice(i, i + concurrency);
     const batchResults = await Promise.all(
-      batch.map(pkg => enrichPackage(pkg, registry))
+      batch.map(pkg => enrichPackage(pkg, registry, now))
     );
     results.push(...batchResults);
 

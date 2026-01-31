@@ -231,13 +231,23 @@ bun run typecheck
 
 ## Testing
 
+### Quick Test (Fast)
 ```bash
-# Run all tests
-bun test
-
-# Run specific test file
-bun test src/core/detector.test.ts
+bun test  # Unit + integration tests (<5 seconds)
 ```
+
+### Sandbox Test (Thorough)
+```bash
+bun run test:sandbox  # Real API calls (~30 seconds)
+```
+
+See [sandbox/README.md](sandbox/README.md) for details.
+
+### Before Releasing
+1. Run `bun test` (must pass)
+2. Run `bun run test:sandbox` (must pass)
+3. Visually inspect HTML reports
+4. Run `npm run build` and test CLI manually
 
 ## Project Status
 
