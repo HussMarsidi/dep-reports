@@ -1,4 +1,4 @@
-import type { RegistryResponse } from '../../src/types/index.js';
+import { RegistryResponse } from "../../types";
 
 export const mockRegistryData: Record<string, RegistryResponse> = {
   'lodash': {
