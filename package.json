@@ -11,6 +11,7 @@
     "build": "tsup src/cli.ts --format esm --minify --out-dir dist",
     "dev": "bun run src/cli.ts",
     "test": "bun test",
+    "test:sandbox:install": "bun run sandbox/scripts/install.ts",
     "test:sandbox": "bun run sandbox/scripts/run-all.ts",
     "test:sandbox:validate": "bun run sandbox/scripts/validate.ts",
     "typecheck": "tsc --noEmit"
