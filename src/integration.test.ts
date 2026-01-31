@@ -1,8 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
+import { MockRegistry } from '../core/enricher.js';
+import { mockRegistryData } from '../../test/fixtures/mock-registry-data.js';
 
 const execAsync = promisify(exec);
 
@@ -157,5 +159,110 @@ describe('integration', () => {
         rmSync(testInitDir, { recursive: true, force: true });
       }
     }
+  });
+});
+
+describe('Full audit workflow', () => {
+  const testDir = join(process.cwd(), '.test-integration');
+  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+
+  beforeAll(() => {
+    if (existsSync(testDir)) rmSync(testDir, { recursive: true });
+    mkdirSync(testDir, { recursive: true });
+
+    // Create test project
+    writeFileSync(
+      join(testDir, 'package.json'),
+      JSON.stringify({
+        name: 'test-project',
+        dependencies: {
+          'lodash': '4.0.0',
+          'express': '4.16.0'
+        }
+      }, null, 2)
+    );
+
+    // Create lock file
+    writeFileSync(join(testDir, 'package-lock.json'), '{"lockfileVersion": 2}');
+    mkdirSync(join(testDir, 'node_modules', '.bin'), { recursive: true });
+  });
+
+  afterAll(() => {
+    if (existsSync(testDir)) rmSync(testDir, { recursive: true });
+  });
+
+  test('init command creates directory structure', () => {
+    if (!existsSync(cliPath)) {
+      console.warn('CLI not built, skipping test');
+      return;
+    }
+
+    execSync(`node ${cliPath} init`, { cwd: testDir });
+
+    expect(existsSync(join(testDir, '.dep-report'))).toBe(true);
+    expect(existsSync(join(testDir, '.dep-report', 'config.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.dep-report', 'notes.json'))).toBe(true);
+    expect(existsSync(join(testDir, '.dep-report', 'reports'))).toBe(true);
+  });
+
+  test('config.json has valid structure', () => {
+    const configPath = join(testDir, '.dep-report', 'config.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+
+    expect(config).toHaveProperty('staleThreshold');
+    expect(config).toHaveProperty('formats');
+    expect(config).toHaveProperty('concurrency');
+  });
+});
+
+describe('Package enrichment with mock registry', () => {
+  test('enriches packages with registry metadata', async () => {
+    const { enrichPackage } = await import('../core/enricher.js');
+    
+    const mockRegistry = new MockRegistry(mockRegistryData);
+    const mockNow = new Date('2026-01-31');
+    
+    const pkg = {
+      name: 'lodash',
+      current: '4.0.0',
+      latest: '4.17.21',
+      wanted: '4.17.21',
+      type: 'dependencies' as const
+    };
+
+    const result = await enrichPackage(pkg, mockRegistry, mockNow);
+
+    expect(result.name).toBe('lodash');
+    expect(result.current).toBe('4.0.0');
+    expect(result.latest).toBe('4.17.21');
+    expect(result.age).toBeGreaterThan(3000); // ~9 years in days
+    expect(result.currentPublishedAt).toBeInstanceOf(Date);
+    expect(result.latestPublishedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe('Report generation', () => {
+  test('analyzed packages match snapshot', async () => {
+    const { analyzePackages } = await import('../core/analyzer.js');
+    
+    const mockPackages = [
+      {
+        name: 'lodash',
+        current: '4.0.0',
+        latest: '4.17.21',
+        wanted: '4.17.21',
+        type: 'dependencies' as const,
+        currentPublishedAt: new Date('2015-01-26'),
+        latestPublishedAt: new Date('2021-05-06'),
+        age: 3287,
+        isStale: true,
+        risk: 'Major' as const
+      }
+    ];
+
+    const result = analyzePackages(mockPackages, 540);
+    
+    // Snapshot the structure (not full HTML)
+    expect(result).toMatchSnapshot();
   });
 });
