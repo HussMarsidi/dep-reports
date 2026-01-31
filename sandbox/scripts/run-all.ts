@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { readdirSync, existsSync, statSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { readdirSync, existsSync, statSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const ROOT = join(__dirname, '..', '..');
@@ -26,7 +26,7 @@ async function main() {
       
       if (ageInDays > CACHE_EXPIRY_DAYS) {
         console.log(`⚠️  Cache is ${Math.floor(ageInDays)} days old, clearing...`);
-        execSync(`rm -rf ${CACHE_DIR}`, { cwd: ROOT });
+        rmSync(CACHE_DIR, { recursive: true, force: true });
       }
     }
   }
@@ -49,7 +49,7 @@ async function main() {
       // Clean previous runs
       const depReportDir = join(fixturePath, '.dep-report');
       if (existsSync(depReportDir)) {
-        execSync(`rm -rf ${depReportDir}`, { cwd: fixturePath });
+        rmSync(depReportDir, { recursive: true, force: true });
       }
 
       // Run init

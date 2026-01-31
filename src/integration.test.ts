@@ -4,7 +4,7 @@ import { join } from 'path';
 import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import { MockRegistry } from './core/enricher.js';
-import { mockRegistryData } from '../test/fixtures/mock-registry-data.js';
+import { mockRegistryData } from './test/fixtures/mock-registry-data.js';
 
 const execAsync = promisify(exec);
 
@@ -163,12 +163,18 @@ describe('integration', () => {
 });
 
 describe('Full audit workflow', () => {
-  const testDir = join(process.cwd(), '.test-integration');
+  const testDir = join(process.cwd(), '.test-integration-full');
   const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  let initSuccessful = false;
 
   beforeAll(() => {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true });
     mkdirSync(testDir, { recursive: true });
+
+    if (!existsSync(cliPath)) {
+      console.warn('CLI not built, skipping full audit workflow tests');
+      return;
+    }
 
     // Create test project
     writeFileSync(
@@ -185,6 +191,9 @@ describe('Full audit workflow', () => {
     // Create lock file
     writeFileSync(join(testDir, 'package-lock.json'), '{"lockfileVersion": 2}');
     mkdirSync(join(testDir, 'node_modules', '.bin'), { recursive: true });
+
+    execSync(`node ${cliPath} init`, { cwd: testDir });
+    initSuccessful = true;
   });
 
   afterAll(() => {
@@ -192,12 +201,9 @@ describe('Full audit workflow', () => {
   });
 
   test('init command creates directory structure', () => {
-    if (!existsSync(cliPath)) {
-      console.warn('CLI not built, skipping test');
+    if (!initSuccessful) {
       return;
     }
-
-    execSync(`node ${cliPath} init`, { cwd: testDir });
 
     expect(existsSync(join(testDir, '.dep-report'))).toBe(true);
     expect(existsSync(join(testDir, '.dep-report', 'config.json'))).toBe(true);
@@ -206,6 +212,10 @@ describe('Full audit workflow', () => {
   });
 
   test('config.json has valid structure', () => {
+    if (!initSuccessful) {
+      return;
+    }
+
     const configPath = join(testDir, '.dep-report', 'config.json');
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
