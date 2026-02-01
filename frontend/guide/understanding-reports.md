@@ -6,6 +6,62 @@ description: Learn to interpret dependency reports and prioritize updates
 
 Understand what the data means and when to act.
 
+## Report Structure
+
+Reports now include three main sections:
+
+1. **Summary Block** - Risk status and key statistics at a glance
+2. **Action Required** - Prioritized packages grouped by urgency
+3. **Full Dependency List** - Complete table with all packages
+
+## Summary Block
+
+The summary block appears at the top of every report:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              🔴 At Risk (15% stale)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total: 47 | Outdated: 12 | Stale: 7 | Up-to-date: 35
+Blocked: 3 | Deferred: 2 | Accepted Risk: 1
+
+Risk Assessment: 7 stale dependencies and 4 unaddressed major upgrades detected.
+```
+
+**Risk Status Levels:**
+- 🟢 **Healthy**: <5% stale, <10% outdated with majors
+- 🟡 **Degrading**: 5-15% stale, 10-20% outdated with majors
+- 🔴 **At Risk**: >15% stale OR >20% outdated with majors
+
+**Key Metrics:**
+- **Total**: All dependencies in your project
+- **Outdated**: Packages with newer versions available
+- **Stale**: Packages older than your threshold (default: 12 months)
+- **Up-to-date**: Packages at latest version
+- **Blocked/Deferred/Accepted**: Counts from note keywords
+
+## Action Required Section
+
+Prioritized packages that need attention, grouped by urgency:
+
+### 🔴 Critical Risk
+Packages with highest priority scores:
+- Major updates with significant age
+- Blocked upgrades (marked with 🔴 BLOCKED)
+- Packages behind by >1 year
+
+### 🟡 Review Soon
+Packages that should be reviewed:
+- Minor updates with significant age
+- Deferred upgrades (marked with 🟡 DEFERRED)
+- Packages approaching stale threshold
+
+**Display Rules:**
+- Only shows packages with priority score >15
+- Capped at 7 packages total
+- Shows "✅ No critical actions required" if none found
+
 ## The Columns Explained
 
 ### Package Name
@@ -16,6 +72,25 @@ The dependency that needs attention.
 - **Latest**: Available version on registry
 
 The version gap matters less than the age.
+
+### Behind By
+**Gap between when your installed version was published and when the latest version was published.**
+
+This metric shows how far behind you are in terms of release cadence:
+- `456d` - Latest was published 456 days after your installed version
+- `—` - No data available (exotic versions, missing metadata)
+
+**Example:**
+```
+axios: v0.21.0 (published 2020-05-15) → v1.6.7 (published 2021-08-15)
+Behind by: 456 days
+```
+
+This tells you the latest version has been available for over a year.
+
+### Status
+- **✅ Stable**: Installed version equals latest version (no action needed)
+- **Outdated**: Newer version available
 
 ### Risk Level
 
@@ -63,18 +138,31 @@ Why 18 months?
 
 Configurable in `config.json` based on your team's risk tolerance.
 
-### Notes
+### Notes (Decision Log)
 
-Your custom context for each package:
+Your custom context for each package, with intelligent keyword detection:
 
 ```json
 {
-  "react": "Breaking changes require team training. Q3 2026.",
-  "webpack": "Blocked by deprecated loaders. Evaluating Vite."
+  "react": "BLOCKED: waiting for team migration",
+  "lodash": "DEFERRED: Q2 2026 - requires architecture refactor",
+  "axios": "ACCEPTED RISK: pinned for stability @platform-team",
+  "typescript": "Just a regular note without keywords"
 }
 ```
 
-This context makes reports useful months later when reviewing decisions.
+**Keyword Detection:**
+Notes starting with keywords are automatically highlighted:
+- 🔴 **BLOCKED**: Upgrade blocked by external dependency or team decision
+- 🟡 **DEFERRED**: Upgrade planned for specific timeframe
+- 🔵 **ACCEPTED RISK**: Risk acknowledged and accepted by team
+
+**In Reports:**
+- Keywords appear as badges in the Action Required section
+- Counts appear in the Summary block
+- Full notes appear in the table
+
+This transforms tribal knowledge into an auditable decision log that makes reports useful months later.
 
 ## The Audit Trail
 
@@ -87,24 +175,37 @@ Reports are timestamped: `YYYY-MM-DD_outdated.html`
 └── latest.html               # Current state
 ```
 
-Compare reports over time:
+**Compare reports over time:**
+```bash
+dep-report compare 2026-01-15 latest
+```
+
+Shows:
+- Packages upgraded, added, removed
+- Metric deltas (stale count, major upgrades)
+- Health score improvement percentage
+
+**Use cases:**
 - Track progress: "Reduced stale packages from 8 to 3 this quarter"
 - Identify stuck packages: "These 3 haven't been addressed in 6 months"
 - Show stakeholders: Documented evidence of dependency management
+- Monthly reviews: Quantify improvement in dependency health
 
 ## When to Act
 
 ### High Priority: Stale + Major
 
 ```
-| axios | 0.19.0 | 1.6.0 | Major | 24 months | Yes |
+🔴 Critical Risk
+• axios (v0.19.0 → v1.6.0)
+  24 months old, behind by 456 days | Major update
 ```
 
 **Action:**
 1. Check for known CVEs
 2. Review breaking changes in changelog
 3. Schedule for next sprint
-4. Add note if blocked
+4. Add note if blocked: `"BLOCKED: waiting for team migration"`
 
 ### Medium Priority: Stale + Minor
 
@@ -130,13 +231,22 @@ Compare reports over time:
 ### Document: Blocked Updates
 
 ```
-| react | 17.0.2 | 18.2.0 | Major | 18 months | Yes | "Team training scheduled Q3" |
+🔴 Critical Risk
+• react (v17.0.2 → v18.2.0)
+  18 months old, behind by 412 days | Major update
+  🔴 BLOCKED: waiting for team migration
 ```
 
 **Action:**
-1. Add note explaining blocker
+1. Add note with BLOCKED keyword: `"BLOCKED: waiting for team migration"`
 2. Set reminder to revisit
 3. Re-evaluate quarterly
+4. Update note when blocker is resolved
+
+**Note Keywords:**
+- Use `BLOCKED:` for upgrades blocked by external factors
+- Use `DEFERRED:` for upgrades planned for specific timeframe
+- Use `ACCEPTED RISK:` for risks acknowledged by team
 
 Don't let notes get stale—review them regularly.
 

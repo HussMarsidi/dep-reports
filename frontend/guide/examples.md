@@ -8,34 +8,61 @@ Common usage patterns and real-world scenarios.
 
 ## CI/CD Integration
 
-### GitHub Actions
+### GitHub Actions - Nightly Audit
 
-Fail the build if major updates are available:
+Run nightly, auto-commit reports. Your audit trail builds itself:
 
 ```yaml
-name: Dependency Check
+name: Dependency Audit
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM daily
+  workflow_dispatch:
 
 jobs:
-  check-deps:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: npm install
-      - name: Check dependencies
+          node-version: '20'
+      - name: Run dependency audit
+        run: npx dep-report
+      - name: Commit report if changed
         run: |
-          npx dep-report
-          # Configure to fail on major updates
-          # See configuration guide for failConditions
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .dep-report/reports/
+          git diff --staged --quiet || git commit -m "chore: update dependency report"
+          git push
 ```
+
+### GitHub Actions - PR Enforcement
+
+Fail PRs if major upgrades are rotting. Enforce hygiene at merge time:
+
+```yaml
+name: Dependency Check
+
+on: [pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run dependency check
+        run: npx dep-report
+        env:
+          FAIL_ON_MAJOR: true  # Exit code 1 if majors found (requires config.json with failConditions.major: true)
+```
+
+**See also:** Copy-paste workflows in `examples/github-actions/` directory.
 
 ### GitLab CI
 
@@ -178,19 +205,25 @@ Then run `dep-report` as normal—it will use your configured registry.
 }
 ```
 
-## Tracking Upgrade Blockers
+## Tracking Upgrade Blockers (Decision Log)
 
-Use notes to track why packages aren't upgraded:
+Use notes with keywords to track why packages aren't upgraded:
 
 ```json
 {
-  "notes": {
-    "lodash": "Waiting for v5.0.0 release (Q2 2026)",
-    "axios": "Blocked by breaking changes in v1.0.0",
-    "react": "Upgrade planned for next sprint"
-  }
+  "react": "BLOCKED: waiting for team migration",
+  "lodash": "DEFERRED: Q2 2026 - requires architecture refactor",
+  "axios": "ACCEPTED RISK: pinned for stability @platform-team",
+  "typescript": "Just a regular note without keywords"
 }
 ```
+
+**Keyword Detection:**
+- `BLOCKED:` - Upgrade blocked by external dependency (🔴 badge)
+- `DEFERRED:` - Upgrade planned for specific timeframe (🟡 badge)
+- `ACCEPTED RISK:` - Risk acknowledged and accepted (🔵 badge)
+
+Keywords are automatically highlighted in reports with badges and counted in the summary.
 
 ## Daily Reports Workflow
 
@@ -205,6 +238,16 @@ dep-report
 # .dep-report/reports/2026-01-31_outdated.md
 # etc.
 ```
+
+**Track Health Over Time:**
+
+```bash
+# Compare reports to see improvement
+dep-report compare 2026-01-15 latest
+dep-report compare last-month latest
+```
+
+Shows packages upgraded, added, removed, and health score improvement.
 
 ## Fast Iteration with Cache
 
