@@ -8,8 +8,38 @@ export function normalizeOutdatedOutput(
 ): OutdatedPackage[] {
   const packages: OutdatedPackage[] = [];
 
+  // bun can return an array or a { packages: [] } wrapper
+  const bunLikeList =
+    Array.isArray(rawOutput) ? rawOutput : Array.isArray(rawOutput.packages) ? rawOutput.packages : null;
+
+  if (bunLikeList) {
+    for (const item of bunLikeList) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+
+      const name = item.name || item.package || item.pkg;
+      const current = item.current || item.installed || item.version || '-';
+      const latest = item.latest || item.update || item.wanted || current;
+      const wanted = item.wanted || item.update || item.current || latest;
+      const type = item.type || item.dependencyType || item.kind || inferDependencyType(String(name));
+
+      if (!name || !latest) {
+        continue;
+      }
+
+      packages.push({
+        name: String(name),
+        current: String(current),
+        wanted: String(wanted),
+        latest: String(latest),
+        type: type as OutdatedPackage['type'],
+      });
+    }
+    return packages;
+  }
+
   // npm and pnpm have similar structure: { "package-name": { current, wanted, latest, type } }
-  // bun might differ, but we'll handle it similarly
   for (const [packageName, data] of Object.entries(rawOutput)) {
     // Skip if it's not an object (some managers add metadata)
     if (typeof data !== 'object' || data === null || Array.isArray(data)) {

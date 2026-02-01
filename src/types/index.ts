@@ -48,4 +48,7 @@ export interface RegistryResponse {
 }
 
 // Raw output from package manager outdated commands
-export type RawOutdatedOutput = Record<string, any>;
+export type RawOutdatedOutput =
+  | Record<string, any>
+  | Array<Record<string, any>>
+  | { packages?: Array<Record<string, any>> };

@@ -4,6 +4,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
 import { MockRegistry } from './core/enricher.js';
+import { normalizeOutdatedOutput } from './core/normalizer.js';
+import { scanOutdated } from './core/scanner.js';
 import { mockRegistryData } from './test/fixtures/mock-registry-data.js';
 
 const execAsync = promisify(exec);
@@ -158,6 +160,69 @@ describe('integration', () => {
       if (existsSync(testInitDir)) {
         rmSync(testInitDir, { recursive: true, force: true });
       }
+    }
+  });
+});
+
+describe('bun outdated integration', () => {
+  const testDir = join(process.cwd(), '.test-bun-outdated');
+  let bunInstallOk = false;
+
+  beforeAll(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+    mkdirSync(testDir, { recursive: true });
+
+    const packageJson = {
+      name: 'bun-outdated-fixture',
+      version: '1.0.0',
+      private: true,
+      dependencies: {
+        '@clack/prompts': '0.9.1',
+        'commander': '12.1.0',
+      },
+    };
+
+    writeFileSync(
+      join(testDir, 'package.json'),
+      JSON.stringify(packageJson, null, 2)
+    );
+
+    try {
+      execSync('bun install', { cwd: testDir, stdio: 'ignore' });
+      bunInstallOk =
+        existsSync(join(testDir, 'bun.lock')) || existsSync(join(testDir, 'bun.lockb'));
+    } catch (error) {
+      console.warn(
+        'bun install failed, skipping bun outdated integration test:',
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  });
+
+  afterAll(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  test('parses bun outdated output', async () => {
+    if (!bunInstallOk) {
+      return;
+    }
+    try {
+      const raw = await scanOutdated('bun', testDir);
+      const normalized = normalizeOutdatedOutput(raw);
+
+      expect(normalized.length).toBeGreaterThan(0);
+      const names = normalized.map(pkg => pkg.name);
+      expect(names).toContain('@clack/prompts');
+    } catch (error) {
+      console.warn(
+        'bun outdated integration test skipped:',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   });
 });

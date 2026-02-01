@@ -53,6 +53,47 @@ describe('normalizer', () => {
     expect(result[0].type).toBe('dependencies');
   });
 
+  test('handles bun-style array output', () => {
+    const raw: RawOutdatedOutput = [
+      {
+        name: '@clack/prompts',
+        current: '0.9.1',
+        update: '1.0.0',
+        latest: '1.0.0',
+        type: 'dependencies',
+      },
+    ];
+
+    const result = normalizeOutdatedOutput(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      name: '@clack/prompts',
+      current: '0.9.1',
+      wanted: '1.0.0',
+      latest: '1.0.0',
+      type: 'dependencies',
+    });
+  });
+
+  test('handles bun-style wrapped output', () => {
+    const raw: RawOutdatedOutput = {
+      packages: [
+        {
+          name: 'commander',
+          current: '12.1.0',
+          update: '14.0.3',
+          latest: '14.0.3',
+          type: 'dependencies',
+        },
+      ],
+    };
+
+    const result = normalizeOutdatedOutput(raw);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('commander');
+    expect(result[0].latest).toBe('14.0.3');
+  });
+
   test('handles version field as fallback', () => {
     const raw: RawOutdatedOutput = {
       'package-a': {
