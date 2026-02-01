@@ -26,6 +26,14 @@ npx dep-report
 
 Open `.dep-report/reports/latest.html` in a browser.
 
+### Understanding the Report Structure
+
+Reports now include three main sections:
+
+1. **Summary Block** - Risk status (🟢 Healthy / 🟡 Degrading / 🔴 At Risk) and key statistics
+2. **Action Required** - Prioritized packages grouped by urgency (🔴 Critical / 🟡 Review Soon)
+3. **Full Dependency List** - Complete table with all packages
+
 ### Understanding the Columns
 
 | Column | What It Shows | Example |
@@ -33,10 +41,11 @@ Open `.dep-report/reports/latest.html` in a browser.
 | **Package** | Dependency name | `axios` |
 | **Current** | Your installed version | `0.27.2` |
 | **Latest** | Available version | `1.6.0` |
-| **Risk** | Update type | `Major` |
 | **Age** | Time since YOUR version was published | `18 months` |
-| **Stale?** | Exceeds threshold (default: 18 months) | `Yes` |
-| **Notes** | Your custom context | `Planned for Q3` |
+| **Behind** | Gap between installed and latest publish dates | `456 days` |
+| **Risk** | Update type | `🔴 Major` |
+| **Status** | Package status | `✅ Stable` or `Outdated` |
+| **Notes** | Your custom context with badges | `🔴 BLOCKED: waiting for migration` |
 
 ### Risk Levels
 
@@ -65,9 +74,24 @@ An 18-month-old version has accumulated:
 
 Packages older than this are marked "stale." This threshold is configurable based on your team's needs.
 
-## Add Context with Notes
+## Initialize Configuration
 
-Track why you haven't upgraded something:
+Create configuration structure with a preset:
+
+```bash
+dep-report init                    # Default: production preset
+dep-report init --preset starter   # Just visibility, no CI failures
+dep-report init --preset strict    # Fail on old dependencies
+```
+
+**Presets:**
+- **Starter**: 24 months threshold, no CI failures (just visibility)
+- **Production**: 12 months threshold, fail on major upgrades (recommended)
+- **Strict**: 6 months threshold, fail on stale and major (security-sensitive)
+
+## Add Context with Notes (Decision Log)
+
+Track why you haven't upgraded something using keywords:
 
 ```bash
 dep-report init  # Creates configuration structure
@@ -77,12 +101,18 @@ Edit `.dep-report/notes.json`:
 
 ```json
 {
-  "axios": "Major version requires API migration. Planned for Q3 2026.",
-  "webpack": "Evaluating Vite as replacement"
+  "react": "BLOCKED: waiting for team migration",
+  "lodash": "DEFERRED: Q2 2026 - requires architecture refactor",
+  "axios": "ACCEPTED RISK: pinned for stability @platform-team"
 }
 ```
 
-Run `dep-report` again—notes appear in the report.
+**Keywords:**
+- `BLOCKED:` - Upgrade blocked (🔴 badge in reports)
+- `DEFERRED:` - Upgrade planned (🟡 badge in reports)
+- `ACCEPTED RISK:` - Risk acknowledged (🔵 badge in reports)
+
+Run `dep-report` again—notes appear in the report with badges and are counted in the summary.
 
 ## What to Commit
 

@@ -29,6 +29,7 @@ dep-report
 
 **Options**:
 - `--refresh`: Use cached registry data (no network calls)
+- `--dry-run [level]`: Preview summary without writing files (`summary`|`actions`|`full`, default: `actions`)
 - `--version`: Show version number
 - `--help`: Show help message
 
@@ -36,7 +37,7 @@ dep-report
 
 ### `dep-report init`
 
-Scaffolds the `.dep-report/` directory structure.
+Scaffolds the `.dep-report/` directory structure with optional preset configuration.
 
 **Usage**:
 ```bash
@@ -45,6 +46,7 @@ dep-report init
 
 **Options**:
 - `--include-config`: Force overwrite `config.json` even if it exists
+- `--preset <preset>`: Use a preset configuration (`starter`|`production`|`strict`, default: `production`)
 
 **What it creates**:
 - `.dep-report/config.json` - Configuration settings
@@ -52,8 +54,9 @@ dep-report init
 - `.dep-report/.gitignore` - Ignores cache files
 - `.dep-report/reports/` - Reports directory
 
-**Example**:
+**Examples**:
 ```bash
+# Default initialization (production preset)
 $ dep-report init
 Created .dep-report/ directory
 Created .dep-report/reports/ directory
@@ -61,6 +64,15 @@ Created .dep-report/config.json
 Created .dep-report/notes.json
 Created .dep-report/.gitignore
 Initialization complete!
+
+# Use a specific preset
+$ dep-report init --preset strict
+Using preset: Strict - Old dependencies break builds
+Created .dep-report/config.json
+...
+
+# Force overwrite existing config
+$ dep-report init --include-config --preset starter
 ```
 
 ## Options
@@ -96,6 +108,25 @@ dep-report --version
 0.0.1
 ```
 
+### `--dry-run`
+
+Preview summary without writing report files.
+
+**Usage**:
+```bash
+dep-report --dry-run              # Default: summary + action required
+dep-report --dry-run=summary      # Minimal stats only
+dep-report --dry-run=actions      # Stats + top priority items (default)
+dep-report --dry-run=full         # Stats + actions + complete table
+```
+
+**When to use**:
+- Quick health check without committing files
+- Local experimentation
+- CI/CD preview before generating reports
+
+**Note**: Still honors `failConditions` in config.json (exits with code 1 if conditions met).
+
 ### `--help`
 
 Display help message and exit.
@@ -104,6 +135,41 @@ Display help message and exit.
 ```bash
 dep-report --help
 ```
+
+## Compare Command
+
+### `dep-report compare`
+
+Compare two dependency reports to track health over time.
+
+**Usage**:
+```bash
+dep-report compare <from> <to>
+```
+
+**Arguments**:
+- `<from>`: Start date (`YYYY-MM-DD`), `"latest"`, or `"last-month"`
+- `<to>`: End date (`YYYY-MM-DD`) or `"latest"`
+
+**Examples**:
+```bash
+# Compare specific dates
+dep-report compare 2025-12-01 2026-01-31
+
+# Compare to latest report
+dep-report compare 2025-12-01 latest
+
+# Compare last month to today
+dep-report compare last-month latest
+```
+
+**Output**:
+- Shows packages upgraded, added, removed
+- Displays metric deltas (stale count, major upgrades)
+- Calculates health score improvement percentage
+- Exit code 0 if improved, 1 if regressed
+
+**Use case**: Monthly team reviews, tracking progress on dependency hygiene initiatives.
 
 ## Exit Codes
 
@@ -150,11 +216,37 @@ Configure `failConditions` in `config.json`:
 ### Initialization
 
 ```bash
-# Create config structure
+# Create config structure (production preset)
 dep-report init
 
+# Use specific preset
+dep-report init --preset strict
+
 # Force overwrite config
-dep-report init --include-config
+dep-report init --include-config --preset starter
+```
+
+### Preview Mode
+
+```bash
+# Quick health check
+dep-report --dry-run
+
+# Minimal output
+dep-report --dry-run=summary
+
+# Full preview
+dep-report --dry-run=full
+```
+
+### Health Tracking
+
+```bash
+# Compare reports over time
+dep-report compare 2025-12-01 latest
+
+# Compare last month to today
+dep-report compare last-month latest
 ```
 
 ## Error Messages

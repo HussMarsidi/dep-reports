@@ -1,5 +1,7 @@
 # dep-report
 
+> **Turn your dependency chaos into a daily, version-controlled risk brief.**
+
 Zero-config CLI tool that generates version-controlled snapshots of dependency risk.
 
 ## Installation
@@ -18,7 +20,19 @@ Or use with npx (no installation needed):
 npx dep-report
 ```
 
-## Quick Start
+## The Problem
+
+Dependency drift is invisible until it explodes.
+
+You get bombarded with automated PRs but can't tell which ones actually matter. No context, just version bumps. A security advisory drops and you're scrambling to figure out your exposure. A build breaks because some package hasn't been touched in 3 years. Management asks about technical debt and you're pulling together an answer on the spot.
+
+The real issue isn't automation—it's visibility. You need to see what's outdated, understand the risk, and have evidence for your decisions. Not just a flood of PRs.
+
+**Renovate/Dependabot create noise. dep-report creates evidence.**
+
+## The Solution
+
+dep-report gives you a daily, human-readable risk brief, checked into your repo.
 
 Run in your project directory:
 
@@ -31,6 +45,15 @@ This will:
 2. Scan for outdated packages
 3. Enrich with registry metadata (publish dates, age)
 4. Generate reports in `.dep-report/reports/`
+
+## The Outcome
+
+You can see at a glance whether you're getting healthier or rotting.
+
+**Proof Point:**
+> "Six months ago we had 34 stale dependencies, 9 majors ignored. Today we're at 3 and 1—and we can prove it from the reports in `/.dep-report/reports`."
+
+## Quick Start
 
 ## Usage
 
@@ -118,18 +141,19 @@ Exit code conditions for CI/CD integration:
 
 Whether to generate reports when no outdated packages are found. Default: `true`.
 
-### Notes
+### Notes (Decision Log)
 
-Add custom notes to packages in `.dep-report/notes.json`:
+Transform tribal knowledge into auditable decisions. Add notes to packages in `.dep-report/notes.json`:
 
 ```json
 {
-  "package-name": "Known issue: waiting for v2.0.0 release",
-  "another-package": "Upgrade blocked by breaking changes"
+  "react": "BLOCKED: waiting for team migration",
+  "lodash": "DEFERRED: Q2 2026 - requires architecture refactor",
+  "axios": "ACCEPTED RISK: pinned for stability @platform-team"
 }
 ```
 
-Notes appear in reports next to the package entry.
+Notes with keywords (`BLOCKED:`, `DEFERRED:`, `ACCEPTED RISK:`) are automatically highlighted in reports with badges, creating a self-documenting decision log.
 
 ## Usage Examples
 
@@ -210,6 +234,23 @@ The tool respects npm registry rate limits by:
 
 Age is calculated based on when the **currently installed version** was published, not when the latest version was published. This answers: "How old is the dependency we're actively using?"
 
+## Guarantees
+
+**Privacy:**
+- No tracking, no analytics, no phoning home
+- All data stays local in your repository
+- Registry queries are read-only package metadata
+
+**Control:**
+- Outputs are plain files under your version control
+- No vendor lock-in, no proprietary formats
+- Works offline with cached data
+
+**Transparency:**
+- Open source (MIT license)
+- Readable templates, editable notes
+- Deterministic output (same input = same report)
+
 ## Development
 
 ```bash
@@ -248,15 +289,3 @@ See [sandbox/README.md](sandbox/README.md) for details.
 2. Run `bun run test:sandbox` (must pass)
 3. Visually inspect HTML reports
 4. Run `npm run build` and test CLI manually
-
-## Project Status
-
-✅ **Production Ready**
-- ✅ Package manager detection (npm, pnpm, bun)
-- ✅ Outdated package scanning
-- ✅ Registry enrichment with age calculation
-- ✅ Risk & age calculation
-- ✅ Markdown & HTML report generation
-- ✅ Configuration system
-- ✅ Notes system
-- ✅ Comprehensive test suite

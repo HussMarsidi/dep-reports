@@ -98,6 +98,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: null,
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic', // Will be recalculated
         },
@@ -110,6 +111,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: null,
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic', // Will be recalculated
         },
@@ -131,6 +133,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: 100, // 100 days old
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic',
         },
@@ -143,6 +146,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: 30, // 30 days old
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic',
         },
@@ -164,6 +168,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: 1000,
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic',
         },
@@ -184,6 +189,7 @@ describe('analyzer', () => {
           currentPublishedAt: null,
           latestPublishedAt: null,
           age: null,
+          behindByDays: null,
           isStale: false,
           risk: 'Exotic',
         },

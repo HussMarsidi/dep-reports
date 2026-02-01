@@ -9,10 +9,56 @@ dep-report works zero-config out of the box. Configuration lets you tune behavio
 Create configuration files with:
 
 ```bash
-dep-report init
+dep-report init                    # Default: production preset
+dep-report init --preset starter   # Use starter preset
+dep-report init --preset strict    # Use strict preset
 ```
 
 This creates `.dep-report/config.json` where you can customize settings.
+
+## Presets
+
+Presets provide opinionated configurations for common use cases:
+
+### Starter (Visibility Only)
+```json
+{
+  "staleThreshold": "24 months",
+  "failConditions": { "stale": false, "major": false },
+  "reportEmptyState": true
+}
+```
+**Message:** *"Just getting visibility - no CI failures"*  
+**Use Case:** Teams beginning their dependency hygiene journey
+
+### Production (Recommended Default)
+```json
+{
+  "staleThreshold": "12 months",
+  "failConditions": { "stale": false, "major": true },
+  "reportEmptyState": true
+}
+```
+**Message:** *"Prevent major upgrades from rotting indefinitely"*  
+**Use Case:** Mature teams with CI/CD integration
+
+### Strict (Security-Sensitive)
+```json
+{
+  "staleThreshold": "6 months",
+  "failConditions": { "stale": true, "major": true },
+  "reportEmptyState": true
+}
+```
+**Message:** *"Old dependencies break builds"*  
+**Use Case:** Financial, healthcare, or security-critical systems
+
+**Using Presets:**
+```bash
+dep-report init --preset production  # Recommended for most teams
+```
+
+You can still customize the generated `config.json` after initialization.
 
 ## Configuration Options
 
@@ -228,6 +274,20 @@ dep-report || exit 1
 ```
 
 Fails if any package is stale (regardless of risk level).
+
+## Preset vs Custom Configuration
+
+**When to use presets:**
+- Quick setup for new projects
+- Standard team configurations
+- Starting point for customization
+
+**When to use custom config:**
+- Project-specific requirements
+- Fine-tuned thresholds
+- Special ignore patterns
+
+**Best practice:** Start with a preset, then customize as needed.
 
 ## Next Steps
 

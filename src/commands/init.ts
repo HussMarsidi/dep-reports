@@ -2,11 +2,16 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { DEFAULT_CONFIG } from '../config/schema.js';
 import { logger } from '../utils/logger.js';
+import { getPreset, type PresetName } from '../config/presets.js';
 
 /**
  * Scaffolds the .dep-report/ directory structure
  */
-export async function initCommand(cwd: string = process.cwd(), includeConfig: boolean = false): Promise<void> {
+export async function initCommand(
+  cwd: string = process.cwd(),
+  includeConfig: boolean = false,
+  preset?: PresetName
+): Promise<void> {
   const depReportDir = join(cwd, '.dep-report');
   const configPath = join(depReportDir, 'config.json');
   const notesPath = join(depReportDir, 'notes.json');
@@ -29,7 +34,15 @@ export async function initCommand(cwd: string = process.cwd(), includeConfig: bo
 
   // Create config.json
   if (!existsSync(configPath) || includeConfig) {
-    const configContent = JSON.stringify(DEFAULT_CONFIG, null, 2);
+    let config = DEFAULT_CONFIG;
+    
+    if (preset) {
+      const presetConfig = getPreset(preset);
+      config = presetConfig.config;
+      logger.info(`Using preset: ${presetConfig.displayName} - ${presetConfig.description}`);
+    }
+    
+    const configContent = JSON.stringify(config, null, 2);
     writeFileSync(configPath, configContent, 'utf-8');
     logger.success('Created .dep-report/config.json');
   } else {

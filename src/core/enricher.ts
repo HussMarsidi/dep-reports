@@ -61,6 +61,7 @@ export async function enrichPackage(
       currentPublishedAt: null,
       latestPublishedAt: null,
       age: null,
+      behindByDays: null,
       isStale: false, // Will be calculated later based on threshold
       risk: 'Exotic', // Can't determine without metadata
     };
@@ -76,11 +77,19 @@ export async function enrichPackage(
     age = Math.floor(ageInMs / (1000 * 60 * 60 * 24)); // Convert to days
   }
 
+  // Calculate behind by: gap between current and latest publish dates
+  let behindByDays: number | null = null;
+  if (currentPublishedAt && latestPublishedAt) {
+    const behindInMs = latestPublishedAt.getTime() - currentPublishedAt.getTime();
+    behindByDays = Math.floor(behindInMs / (1000 * 60 * 60 * 24)); // Convert to days
+  }
+
   return {
     ...pkg,
     currentPublishedAt,
     latestPublishedAt,
     age,
+    behindByDays,
     isStale: false, // Will be set by analyzer based on threshold
     risk: 'Exotic', // Will be calculated by analyzer
   };
