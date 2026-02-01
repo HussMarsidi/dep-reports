@@ -19,8 +19,11 @@ import { loadNotes } from './notes/loader.js';
 import { mergeNotes } from './notes/merger.js';
 import { filterPackages } from './utils/filter.js';
 import { initCommand } from './commands/init.js';
+import { compareCommand } from './commands/compare.js';
+import type { PresetName } from './config/presets.js';
 import { checkRegistryConnectivity } from './utils/network.js';
 import { countTotalDependencies } from './utils/package-count.js';
+import { calculateSummary, calculatePriorityScore, formatNoteWithBadge, isStable } from './reports/summary.js';
 
 const program = new Command();
 const packageJsonPath = new URL('../package.json', import.meta.url);
@@ -60,10 +63,37 @@ program
   .command('init')
   .description('Scaffold .dep-report/ directory structure')
   .option('--include-config', 'Force overwrite config.json even if it exists')
+  .option('--preset <preset>', 'Use a preset configuration (starter|production|strict)', 'production')
   .action(async (options) => {
     try {
-      await initCommand(process.cwd(), options.includeConfig);
+      const { isValidPresetName } = await import('./config/presets.js');
+      let preset: PresetName | undefined;
+      
+      if (options.preset) {
+        if (!isValidPresetName(options.preset)) {
+          logger.error(`Invalid preset: ${options.preset}. Valid options: starter, production, strict`);
+          process.exit(1);
+        }
+        preset = options.preset as PresetName;
+      }
+      
+      await initCommand(process.cwd(), options.includeConfig, preset);
       process.exit(0);
+    } catch (error) {
+      logger.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Compare command
+program
+  .command('compare')
+  .description('Compare two dependency reports to track health over time')
+  .argument('<from>', 'Start date (YYYY-MM-DD), "latest", or "last-month"')
+  .argument('<to>', 'End date (YYYY-MM-DD) or "latest"')
+  .action(async (from, to) => {
+    try {
+      await compareCommand(from, to);
     } catch (error) {
       logger.error(error instanceof Error ? error.message : String(error));
       process.exit(1);
@@ -72,7 +102,8 @@ program
 
 // Default command (audit)
 program
-  .action(async () => {
+  .option('--dry-run [level]', 'Preview summary without writing files (summary|actions|full)', 'actions')
+  .action(async (options) => {
     try {
       const cwd = process.cwd();
       
@@ -167,6 +198,74 @@ program
       // Merge notes (Phase 2)
       const notes = loadNotes(cwd);
       analyzed = mergeNotes(analyzed, notes);
+
+      // Handle dry-run mode
+      if (options.dryRun) {
+        const totalDependencies = countTotalDependencies(cwd);
+        const summary = calculateSummary(analyzed, totalDependencies);
+        const dryRunLevel = typeof options.dryRun === 'string' ? options.dryRun : 'actions';
+        
+        console.log('\nDry Run Summary');
+        console.log('────────────────');
+        console.log(`Status: ${summary.riskStatusEmoji} ${summary.riskStatusText}\n`);
+        
+        console.log(`Total dependencies: ${summary.total}`);
+        console.log(`Outdated: ${summary.outdated} (${summary.major} major, ${summary.minor} minor, ${summary.patch} patch)`);
+        console.log(`Stale (>12 months): ${summary.stale}\n`);
+        
+        if (dryRunLevel === 'actions' || dryRunLevel === 'full') {
+          const actionRequired = analyzed
+            .map(pkg => ({ pkg, score: calculatePriorityScore(pkg) }))
+            .filter(({ score }) => score > 15)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 7)
+            .map(({ pkg }) => pkg);
+          
+          if (actionRequired.length > 0) {
+            console.log('Action Required:');
+            for (const pkg of actionRequired) {
+              const ageStr = pkg.age !== null ? `${pkg.age}d` : 'Unknown';
+              const behindStr = pkg.behindByDays !== null ? `${pkg.behindByDays}d` : '—';
+              const noteBadge = pkg.note ? formatNoteWithBadge(pkg.note) : '';
+              const riskEmoji = pkg.risk === 'Major' ? '🔴' : pkg.risk === 'Minor' ? '🟡' : '🟢';
+              console.log(`  ${riskEmoji} ${pkg.name} (${ageStr}, behind by ${behindStr}) - ${pkg.risk} ${pkg.current} → ${pkg.latest}${noteBadge ? `, ${noteBadge}` : ''}`);
+            }
+            console.log('');
+          }
+        }
+        
+        if (dryRunLevel === 'full') {
+          console.log('Full Dependency List:');
+          for (const pkg of analyzed) {
+            const ageStr = pkg.age !== null ? `${pkg.age}d` : 'Unknown';
+            const behindStr = pkg.behindByDays !== null ? `${pkg.behindByDays}d` : '—';
+            const status = isStable(pkg) ? '✅ Stable' : 'Outdated';
+            console.log(`  ${pkg.name}: ${pkg.current} → ${pkg.latest} (${ageStr}, ${behindStr}, ${pkg.risk}, ${status})`);
+          }
+          console.log('');
+        }
+        
+        console.log('[No files written]\n');
+        
+        // Still check exit conditions
+        let shouldFail = false;
+        if (config.failConditions.stale) {
+          const hasStale = analyzed.some(pkg => pkg.isStale);
+          if (hasStale) {
+            logger.error('Found stale packages (--fail-if-stale)');
+            shouldFail = true;
+          }
+        }
+        if (config.failConditions.major) {
+          const hasMajor = analyzed.some(pkg => pkg.risk === 'Major');
+          if (hasMajor) {
+            logger.error('Found major version updates (--fail-if-major)');
+            shouldFail = true;
+          }
+        }
+        
+        process.exit(shouldFail ? 1 : 0);
+      }
 
       // Generate reports (only if config says so)
       if (config.formats.markdown || config.formats.html) {
