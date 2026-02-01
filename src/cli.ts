@@ -1,29 +1,29 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { detectPackageManager } from './core/detector.js';
-import { scanOutdated } from './core/scanner.js';
-import { normalizeOutdatedOutput } from './core/normalizer.js';
-import { enrichPackages } from './core/enricher.js';
-import { analyzePackages } from './core/analyzer.js';
-import { generateMarkdownReport } from './reports/markdown.js';
-import { generateHtmlReport } from './reports/html.js';
-import { ensureNodeModules, ensureWriteAccess } from './utils/fs.js';
-import { logger } from './utils/logger.js';
 import { format } from 'date-fns';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { compareCommand } from './commands/compare.js';
+import { initCommand } from './commands/init.js';
 import { loadConfig } from './config/loader.js';
-import { parseDurationToDays } from './utils/time.js';
+import type { PresetName } from './config/presets.js';
+import { analyzePackages } from './core/analyzer.js';
+import { detectPackageManager } from './core/detector.js';
+import { enrichPackages } from './core/enricher.js';
+import { normalizeOutdatedOutput } from './core/normalizer.js';
+import { scanOutdated } from './core/scanner.js';
 import { loadNotes } from './notes/loader.js';
 import { mergeNotes } from './notes/merger.js';
+import { generateHtmlReport } from './reports/html.js';
+import { generateMarkdownReport } from './reports/markdown.js';
+import { calculatePriorityScore, calculateSummary, formatNoteWithBadge, isStable } from './reports/summary.js';
 import { filterPackages } from './utils/filter.js';
-import { initCommand } from './commands/init.js';
-import { compareCommand } from './commands/compare.js';
-import type { PresetName } from './config/presets.js';
+import { ensureNodeModules, ensureWriteAccess } from './utils/fs.js';
+import { logger } from './utils/logger.js';
 import { checkRegistryConnectivity } from './utils/network.js';
 import { countTotalDependencies } from './utils/package-count.js';
-import { calculateSummary, calculatePriorityScore, formatNoteWithBadge, isStable } from './reports/summary.js';
+import { parseDurationToDays } from './utils/time.js';
 
 const program = new Command();
 const packageJsonPath = new URL('../package.json', import.meta.url);
@@ -112,13 +112,8 @@ program
       
       // Preflight checks
       logger.info('Checking prerequisites...');
-      await ensureNodeModules(cwd);
       
-      // Ensure write access to .dep-report directory
-      const depReportDir = join(cwd, '.dep-report');
-      await ensureWriteAccess(depReportDir);
-
-      // Detect package manager
+      // Detect package manager first (before checking node_modules)
       logger.info('Detecting package manager...');
       const detection = detectPackageManager(cwd);
       if (!detection) {
@@ -126,6 +121,13 @@ program
         process.exit(1);
       }
       logger.success(`Detected: ${detection.manager}`);
+      
+      // Check for node_modules (warn if lockfile exists but node_modules missing)
+      await ensureNodeModules(cwd, !!detection, logger.warn);
+      
+      // Ensure write access to .dep-report directory
+      const depReportDir = join(cwd, '.dep-report');
+      await ensureWriteAccess(depReportDir);
 
       // Scan outdated packages
       logger.info('Scanning for outdated packages...');
