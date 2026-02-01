@@ -8,16 +8,19 @@ Common usage patterns and real-world scenarios.
 
 ## CI/CD Integration
 
-### GitHub Actions - Nightly Audit
+### GitHub Actions - Scheduled Audit
 
-Run nightly, auto-commit reports. Your audit trail builds itself:
+Run on a schedule, auto-commit reports. Your audit trail builds itself:
 
 ```yaml
 name: Dependency Audit
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2 AM daily
+    - cron: '0 2 * * 1'  # 2 AM every Monday (weekly)
+    # Alternative schedules:
+    # - cron: '0 2 * * *'  # 2 AM daily (granular audit trail)
+    # - cron: '0 2 1,15 * *'  # 2 AM on 1st and 15th (bi-weekly)
   workflow_dispatch:
 
 jobs:

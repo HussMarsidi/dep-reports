@@ -474,7 +474,9 @@ jobs:
 ```
 
 **Narrative:**
-> "Run nightly, auto-commit reports. Your audit trail builds itself."
+> "Run on a schedule, auto-commit reports. Your audit trail builds itself."
+
+**Note:** Weekly (default) is recommended for most teams. Daily provides granular audit trail but may be excessive. Adjust based on your team's update cadence.
 
 ---
 
