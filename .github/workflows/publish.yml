@@ -9,6 +9,8 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
 
     steps:
       - name: Checkout code
@@ -19,6 +21,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+          always-auth: true
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -40,7 +43,14 @@ jobs:
       - name: Fix package.json
         run: npm pkg fix
 
+      - name: Verify npm authentication
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "❌ NODE_AUTH_TOKEN is not set"
+            exit 1
+          fi
+          echo "✅ Token is set (length: ${#NODE_AUTH_TOKEN})"
+          npm whoami --registry=https://registry.npmjs.org/ || echo "⚠️  Authentication check failed"
+
       - name: Publish
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
