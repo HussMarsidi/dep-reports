@@ -289,15 +289,3 @@ See [sandbox/README.md](sandbox/README.md) for details.
 2. Run `bun run test:sandbox` (must pass)
 3. Visually inspect HTML reports
 4. Run `npm run build` and test CLI manually
-
-## Project Status
-
-✅ **Production Ready**
-- ✅ Package manager detection (npm, pnpm, bun)
-- ✅ Outdated package scanning
-- ✅ Registry enrichment with age calculation
-- ✅ Risk & age calculation
-- ✅ Markdown & HTML report generation
-- ✅ Configuration system
-- ✅ Notes system
-- ✅ Comprehensive test suite
