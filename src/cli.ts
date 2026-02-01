@@ -20,6 +20,7 @@ import { mergeNotes } from './notes/merger.js';
 import { filterPackages } from './utils/filter.js';
 import { initCommand } from './commands/init.js';
 import { checkRegistryConnectivity } from './utils/network.js';
+import { countTotalDependencies } from './utils/package-count.js';
 
 const program = new Command();
 const packageJsonPath = new URL('../package.json', import.meta.url);
@@ -28,8 +29,31 @@ const packageVersion = packageJson.version ?? '0.0.0';
 
 program
   .name('dep-report')
-  .description('Zero-config CLI tool that generates version-controlled snapshots of dependency risk')
-  .version(packageVersion);
+  .description('Generate dependency risk reports')
+  .version(packageVersion)
+  .addHelpText('before', `
+dep-report - Generate dependency risk reports
+
+USAGE
+  dep-report [options]
+
+DESCRIPTION
+  Scans for outdated packages and generates a daily risk brief 
+  showing age, staleness, and major upgrades. Reports are 
+  version-controlled in .dep-report/reports/
+
+QUICK START
+  dep-report              # Run audit, generate reports
+  dep-report init         # Create config files
+`)
+  .addHelpText('after', `
+EXAMPLES
+  dep-report                           # Daily audit
+  dep-report init                      # Initialize configuration
+
+LEARN MORE
+  https://github.com/hussmarsidi/dep-reports
+`);
 
 // Init command
 program
@@ -87,15 +111,17 @@ program
           }
           const dateStr = format(new Date(), 'yyyy-MM-dd');
           
+          const totalDependencies = countTotalDependencies(cwd);
+          
           if (config.formats.markdown) {
-            const report = generateMarkdownReport([]);
+            const report = generateMarkdownReport([], new Date(), totalDependencies);
             writeFileSync(join(reportsDir, `${dateStr}_outdated.md`), report);
             writeFileSync(join(reportsDir, 'latest.md'), report);
             logger.success(`Report generated: .dep-report/reports/${dateStr}_outdated.md`);
           }
           
           if (config.formats.html) {
-            const htmlReport = generateHtmlReport([]);
+            const htmlReport = generateHtmlReport([], new Date(), totalDependencies);
             writeFileSync(join(reportsDir, `${dateStr}_outdated.html`), htmlReport);
             writeFileSync(join(reportsDir, 'latest.html'), htmlReport);
             logger.success(`HTML report generated: .dep-report/reports/${dateStr}_outdated.html`);
@@ -153,10 +179,11 @@ program
         }
 
         const dateStr = format(new Date(), 'yyyy-MM-dd');
+        const totalDependencies = countTotalDependencies(cwd);
 
         // Generate markdown report
         if (config.formats.markdown) {
-          const report = generateMarkdownReport(analyzed);
+          const report = generateMarkdownReport(analyzed, new Date(), totalDependencies);
           writeFileSync(join(reportsDir, `${dateStr}_outdated.md`), report);
           writeFileSync(join(reportsDir, 'latest.md'), report);
           logger.success(`Report generated: .dep-report/reports/${dateStr}_outdated.md`);
@@ -165,7 +192,7 @@ program
 
         // Generate HTML report
         if (config.formats.html) {
-          const htmlReport = generateHtmlReport(analyzed);
+          const htmlReport = generateHtmlReport(analyzed, new Date(), totalDependencies);
           writeFileSync(join(reportsDir, `${dateStr}_outdated.html`), htmlReport);
           writeFileSync(join(reportsDir, 'latest.html'), htmlReport);
           logger.success(`HTML report generated: .dep-report/reports/${dateStr}_outdated.html`);

@@ -18,6 +18,7 @@ export interface EnrichedPackage extends OutdatedPackage {
   currentPublishedAt: Date | null;  // When current version was published
   latestPublishedAt: Date | null;    // When latest version was published
   age: number | null;                 // Days since current was published
+  behindByDays: number | null;       // Days between current and latest publish dates
   isStale: boolean;                   // age > threshold (will be set later)
   risk: Risk;
   note?: string;                      // From notes.json (will be added later)

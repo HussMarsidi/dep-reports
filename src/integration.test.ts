@@ -265,6 +265,7 @@ describe('Report generation', () => {
         currentPublishedAt: new Date('2015-01-26'),
         latestPublishedAt: new Date('2021-05-06'),
         age: 3287,
+        behindByDays: 2292, // Days between 2015-01-26 and 2021-05-06
         isStale: true,
         risk: 'Major' as const
       }
