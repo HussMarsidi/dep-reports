@@ -26,6 +26,8 @@ npx dep-report open  # View report in browser
 
 Generates a timestamped dependency report showing:
 - Which packages are outdated
+- 🚨 Known security vulnerabilities (npm audit)
+- 📈 Health trends over time
 - How long since they were updated
 - Major vs minor vs patch updates
 - Saved to `.dep-report/reports/` for audit trail

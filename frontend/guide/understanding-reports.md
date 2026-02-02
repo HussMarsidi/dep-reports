@@ -8,11 +8,11 @@ Understand what the data means and when to act.
 
 ## Report Structure
 
-Reports now include three main sections:
-
-1. **Summary Block** - Risk status and key statistics at a glance
-2. **Action Required** - Prioritized packages grouped by urgency
-3. **Full Dependency List** - Complete table with all packages
+Reports now include five main sections:
+1. **Trend Analysis** - Historical health score and risk metrics over time
+2. **Summary Block** - Risk status and key statistics at a glance
+3. **Action Required** - Prioritized packages grouped by urgency (Security > Critical > High)
+4. **Full Dependency List** - Complete table with all packages
 
 ## Summary Block
 
@@ -45,13 +45,18 @@ Risk Assessment: 7 stale dependencies and 4 unaddressed major upgrades detected.
 
 Prioritized packages that need attention, grouped by urgency:
 
+### 🚨 Security Critical
+Packages with known vulnerabilities (CVEs).
+- Immediate action required
+- Shows vulnerability severity and advisory link
+
 ### 🔴 Critical Risk
 Packages with highest priority scores:
 - Major updates with significant age
 - Blocked upgrades (marked with 🔴 BLOCKED)
 - Packages behind by >1 year
 
-### 🟡 Review Soon
+### ⚠️ High / Review Soon
 Packages that should be reviewed:
 - Minor updates with significant age
 - Deferred upgrades (marked with 🟡 DEFERRED)
@@ -137,6 +142,24 @@ Why 18 months?
 - Build tools evolve, creating compatibility issues
 
 Configurable in `config.json` based on your team's risk tolerance.
+
+### Trend Analysis
+Reports now track your dependency health over time (default: last 30 days).
+
+**Metrics Tracked:**
+- **Health Score**: 0-100 score (100 is perfect). Penalized by security issues, stale deps, and major risks.
+- **Stale Count**: Number of packages exceeding your age threshold.
+- **Critical Risks**: Number of high-priority interventions needed.
+
+The HTML report includes an interactive chart showing your health score trajectory.
+
+### Security
+**Reports now integrate `npm audit` data directly.**
+
+If a package has a known security vulnerability:
+- It appears in **Action Required** with a 🚨 SECURITY badge.
+- Details include severity (Critical/High), vulnerability title, and a link to the advisory.
+- It receives the highest priority in remediation recommendations.
 
 ### Notes (Decision Log)
 

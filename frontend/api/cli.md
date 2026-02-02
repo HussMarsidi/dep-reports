@@ -21,7 +21,9 @@ dep-report
 1. Detects package manager (npm, pnpm, or bun)
 2. Scans for outdated packages
 3. Enriches with registry metadata (publish dates, age)
-4. Generates reports in `.dep-report/reports/`
+4. Checks for security vulnerabilities (npm audit)
+5. Updates historical snapshots for trend analysis
+6. Generates reports in `.dep-report/reports/`
 
 **Exit codes**:
 - `0`: Success (or configured fail conditions not met)
@@ -164,8 +166,10 @@ dep-report compare last-month latest
 ```
 
 **Output**:
-- Shows packages upgraded, added, removed
-- Displays metric deltas (stale count, major upgrades)
+**Output**:
+- Shows detailed package improvements and regressions
+- Displays metric deltas (health score, stale count, critical risks)
+- Highlights resolved vs new issues
 - Calculates health score improvement percentage
 - Exit code 0 if improved, 1 if regressed
 
