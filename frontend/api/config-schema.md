@@ -22,6 +22,13 @@ interface Config {
     major: boolean;
   };
   reportEmptyState: boolean;         // Create files even if all up-to-date
+  comparison: {                      // Comparison report settings
+    enabled: boolean;
+    formats: {
+      markdown: boolean;
+      html: boolean;
+    };
+  };
 }
 ```
 
@@ -40,7 +47,14 @@ interface Config {
     "stale": false,
     "major": false
   },
-  "reportEmptyState": true
+  "reportEmptyState": true,
+  "comparison": {
+    "enabled": true,
+    "formats": {
+      "markdown": true,
+      "html": true
+    }
+  }
 }
 ```
 
@@ -236,6 +250,31 @@ Whether to generate reports when no outdated packages are found.
 ```json
 {
   "reportEmptyState": false
+}
+```
+
+### `comparison`
+
+**Type**: `object`  
+**Default**: `{ "enabled": true, "formats": { "markdown": true, "html": true } }`  
+**Required**: No
+
+Configuration for the `dep-report compare` command's file generation.
+
+**Properties**:
+- `enabled` (boolean): Whether to generate file output by default when running `compare`.
+- `formats` (object): Same format control as the main `formats` option.
+
+**Example**:
+```json
+{
+  "comparison": {
+    "enabled": false,
+    "formats": {
+      "markdown": true,
+      "html": false
+    }
+  }
 }
 ```
 
