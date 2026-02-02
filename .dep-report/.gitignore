@@ -1,1 +1,4 @@
 .cache.json
+
+# Optionally ignore comparison reports (uncomment if desired)
+# comparisons/

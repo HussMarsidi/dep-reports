@@ -36,9 +36,10 @@ program
   .name('dep-report')
   .description('Generate dependency risk reports')
   .version(packageVersion)
+  .allowExcessArguments(false)
   .addHelpText('before', `
 dep-report - Generate dependency risk reports
-
+ 
 USAGE
   dep-report [options]
 
@@ -94,9 +95,12 @@ program
   .description('Compare two dependency reports to track health over time')
   .argument('<from>', 'Start date (YYYY-MM-DD), "latest", or "last-month"')
   .argument('<to>', 'End date (YYYY-MM-DD) or "latest"')
-  .action(async (from, to) => {
+  .option('--save', 'Generate and save comparison report files (markdown and/or HTML based on config)')
+  .option('--no-save', 'Skip saving comparison report files, output to terminal only')
+  .option('--format <type>', 'Output format: "markdown", "html", or "both" (overrides config)', 'both')
+  .action(async (from, to, options) => {
     try {
-      await compareCommand(from, to);
+      await compareCommand(from, to, process.cwd(), options);
     } catch (error) {
       logger.error(error instanceof Error ? error.message : String(error));
       process.exit(1);

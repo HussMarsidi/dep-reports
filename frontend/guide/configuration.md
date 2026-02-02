@@ -75,7 +75,11 @@ You can still customize the generated `config.json` after initialization.
     "stale": false,
     "major": false
   },
-  "reportEmptyState": true
+  "reportEmptyState": true,
+  "comparison": {
+    "enabled": true,
+    "formats": { "markdown": true, "html": true }
+  }
 }
 ```
 
@@ -190,6 +194,17 @@ When `false`, skips report generation when everything is up to date.
 - Audit trail: "We checked on this date"
 - CI/CD logs: Proof of dependency review
 - Historical comparison: Track when you achieved "all up to date"
+
+### `comparison` (object)
+
+Configuration for comparison report generation.
+
+- `enabled`: Generate files by default when running `compare`. Default: `true`.
+- `formats`: Which formats to generate (`markdown`, `html`).
+
+**Use cases:**
+- **Auto-save**: Keep history of all comparisons.
+- **CI/CD Integration**: Save artifacts for build pipelines.
 
 ## Configuration Precedence
 

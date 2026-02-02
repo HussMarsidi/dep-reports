@@ -153,25 +153,32 @@ dep-report compare <from> <to>
 - `<from>`: Start date (`YYYY-MM-DD`), `"latest"`, or `"last-month"`
 - `<to>`: End date (`YYYY-MM-DD`) or `"latest"`
 
+**Options**:
+- `--save`: Generate and save comparison report files (markdown/HTML) to `.dep-report/comparisons/`
+- `--no-save`: Skip saving comparison report files (overrides config)
+- `--format <type>`: Output format: `markdown`, `html`, or `both` (default: `both`)
+
 **Examples**:
 ```bash
 # Compare specific dates
 dep-report compare 2025-12-01 2026-01-31
 
-# Compare to latest report
-dep-report compare 2025-12-01 latest
+# Compare to latest report and save files
+dep-report compare 2025-12-01 latest --save
 
-# Compare last month to today
-dep-report compare last-month latest
+# Save only markdown report
+dep-report compare last-month latest --save --format markdown
 ```
 
-**Output**:
 **Output**:
 - Shows detailed package improvements and regressions
 - Displays metric deltas (health score, stale count, critical risks)
 - Highlights resolved vs new issues
 - Calculates health score improvement percentage
 - Exit code 0 if improved, 1 if regressed
+
+**File Output**:
+If `--save` is used or configured, reports are saved to `.dep-report/comparisons/YYYY-MM-DD_vs_YYYY-MM-DD.{md,html}`.
 
 **Use case**: Monthly team reviews, tracking progress on dependency hygiene initiatives.
 
