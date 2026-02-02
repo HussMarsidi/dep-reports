@@ -76,27 +76,42 @@ export function formatNoteWithBadge(note: string | undefined): string {
 export function calculatePriorityScore(pkg: EnrichedPackage): number {
   let score = 0;
   
-  // Age weight (diminishing returns)
-  if (pkg.age !== null) {
-    if (pkg.age > 730) score += 10; // >2 years
-    else if (pkg.age > 365) score += 5; // >1 year
+  // Security (Highest Priority)
+  if (pkg.securityAdvisory) {
+      const s = pkg.securityAdvisory.severity.toLowerCase();
+      if (s === 'critical') score += 100;
+      else if (s === 'high') score += 80;
+      else score += 60;
+  } else if (pkg.hasSecurityAdvisory) {
+      score += 80;
   }
   
-  // Update type/Risk weight
-  if (pkg.risk === 'CRITICAL') score += 20;
-  else if (pkg.risk === 'HIGH') score += 10;
-  else if (pkg.risk === 'MEDIUM') score += 5;
+  // Risk (Base)
+  const riskScores: Record<string, number> = {
+      'CRITICAL': 50,
+      'HIGH': 30,
+      'MEDIUM': 15,
+      'LOW': 5,
+      'Exotic': 0,
+      'NotInstalled': 20
+  };
+  score += (riskScores[pkg.risk] || 0);
   
-  // Note status weight
-  const keyword = detectNoteKeyword(pkg.note);
-  if (keyword === 'blocked') score += 15; // Highest priority
-  else if (keyword === 'deferred') score += 5;
+  // Staleness
+  if (pkg.isStale) score += 20;
   
-  // Security advisory
-  if (pkg.hasSecurityAdvisory) score += 50; 
+  // Age
+  if (pkg.age && pkg.age > 730) score += 10;
+  else if (pkg.age && pkg.age > 365) score += 5;
 
-  // Behind metric weight
-  if (pkg.behindByDays !== null && pkg.behindByDays > 365) score += 7;
+  // Type (Impact)
+  if (pkg.type === 'dependencies') score += 10; // Runtime impact
+  if (pkg.type === 'devDependencies') score += 2;
+
+  // Note status modifiers
+  const keyword = detectNoteKeyword(pkg.note);
+  if (keyword === 'blocked') score += 5; // Keep visible
+  if (keyword === 'deferred') score -= 20; // De-prioritize
   
   return score;
 }

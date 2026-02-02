@@ -105,6 +105,9 @@ export function generateHtmlReport(
           return `<span style="color: ${color}; font-weight: bold;">${icon} ${m.current}</span> <span style="font-size: 0.8em; color: #6b7280;">(${sign}${m.change})</span>`;
       };
       
+      const dates = trendData.snapshots.map(s => format(new Date(s.timestamp), 'MM/dd'));
+      const scores = trendData.snapshots.map(s => s.healthScore);
+
       trendSection = `
       <div class="summary-section">
           <h2>📈 Trend (Last ${trendData.period})</h2>
@@ -126,6 +129,53 @@ export function generateHtmlReport(
                   <span>${formatTrend(criticalCount)}</span>
               </div>
           </div>
+          
+          <div style="margin-top: 1.5rem; background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e5e7eb; height: 250px;">
+            <canvas id="healthTrendChart"></canvas>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const ctx = document.getElementById('healthTrendChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ${JSON.stringify(dates)},
+                        datasets: [{
+                            label: 'Health Score',
+                            data: ${JSON.stringify(scores)},
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                min: 0, 
+                                max: 100,
+                                grid: { color: '#f3f4f6' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            });
+          </script>
       </div>
       `;
   }
