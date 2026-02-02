@@ -141,8 +141,11 @@ Acknowledged Issues
           const typeLabel = pkg.type === 'devDependencies' ? 'Dev' : 'Runtime';
           const ageStr = formatAge(pkg.age);
           const noteBadge = pkg.note ? `\n  ${formatNoteWithBadge(pkg.note)}` : '';
+          const securityInfo = pkg.securityAdvisory 
+            ? `\n  🚨 SECURITY: ${pkg.securityAdvisory.title} (${pkg.securityAdvisory.severity})\n  ${pkg.securityAdvisory.url}` 
+            : '';
           markdown += `• ${pkg.name} (${pkg.current} → ${pkg.latest}) - ${typeLabel}\n`;
-          markdown += `  ${ageStr} old${pkg.isStale ? ', STALE' : ''}${noteBadge}\n\n`;
+          markdown += `  ${ageStr} old${pkg.isStale ? ', STALE' : ''}${securityInfo}${noteBadge}\n\n`;
       });
   }
 
@@ -152,8 +155,11 @@ Acknowledged Issues
           const typeLabel = pkg.type === 'devDependencies' ? 'Dev' : 'Runtime';
           const ageStr = formatAge(pkg.age);
           const noteBadge = pkg.note ? `\n  ${formatNoteWithBadge(pkg.note)}` : '';
+          const securityInfo = pkg.securityAdvisory 
+            ? `\n  🚨 SECURITY: ${pkg.securityAdvisory.title} (${pkg.securityAdvisory.severity})\n  ${pkg.securityAdvisory.url}` 
+            : '';
           markdown += `• ${pkg.name} (${pkg.current} → ${pkg.latest}) - ${typeLabel}\n`;
-          markdown += `  ${ageStr} old${noteBadge}\n\n`;
+          markdown += `  ${ageStr} old${securityInfo}${noteBadge}\n\n`;
       });
   }
 
@@ -187,8 +193,8 @@ Acknowledged Issues
           return a.name.localeCompare(b.name);
       });
 
-      let table = `| Package | Current | Latest | Age | Risk | Notes |\n`;
-      table += `|---------|---------|--------|-----|------|-------|\n`;
+      let table = `| Package | Current | Latest | Age | Risk | Security | Notes |\n`;
+      table += `|---------|---------|--------|-----|------|----------|-------|\n`;
       
       for (const pkg of tableSorted) {
         const ageStr = formatAge(pkg.age);
@@ -201,8 +207,9 @@ Acknowledged Issues
         else if (pkg.risk === 'BLOCKED') riskLabel = '🚫 Blocked';
         
         const noteStr = pkg.note ? formatNoteWithBadge(pkg.note) : '';
+        const securityStr = pkg.securityAdvisory ? `🚨 ${pkg.securityAdvisory.severity}` : '';
 
-        table += `| ${pkg.name} | ${pkg.current} | ${pkg.latest} | ${ageStr} | ${riskLabel} | ${noteStr} |\n`;
+        table += `| ${pkg.name} | ${pkg.current} | ${pkg.latest} | ${ageStr} | ${riskLabel} | ${securityStr} | ${noteStr} |\n`;
       }
       return table + '\n';
   };

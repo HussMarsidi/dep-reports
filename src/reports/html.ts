@@ -281,6 +281,13 @@ export function generateHtmlReport(
               const keyword = detectNoteKeyword(pkg.note);
               const noteBadge = keyword ? `<span class="badge badge-${keyword}">${keyword.toUpperCase()}</span>` : '';
               const noteText = pkg.note ? escapeHtml(pkg.note.replace(/^(BLOCKED|DEFERRED|ACCEPTED(\s+RISK)?)[:\-\s]+/i, '').trim()) : '';
+              
+              const securityHtml = pkg.securityAdvisory 
+                ? `<div style="color: #dc2626; margin-top: 0.5rem; font-weight: 600;">
+                     🚨 SECURITY: ${escapeHtml(pkg.securityAdvisory.title)} (${escapeHtml(pkg.securityAdvisory.severity)})
+                     <br><a href="${escapeHtml(pkg.securityAdvisory.url)}" target="_blank" style="color: #dc2626; text-decoration: underline; font-size: 0.9em; font-weight: normal;">View Advisory</a>
+                   </div>`
+                : '';
 
               res += `<div class="package-card">
                   <div class="package-header">
@@ -289,6 +296,7 @@ export function generateHtmlReport(
                   </div>
                   <div class="package-details">
                       ${ageStr} old${pkg.isStale ? ', STALE' : ''} | Risk: ${escapeHtml(pkg.risk)}
+                      ${securityHtml}
                       ${noteBadge ? `<br>${noteBadge} ${noteText}` : ''}
                   </div>
               </div>`;
@@ -327,6 +335,7 @@ export function generateHtmlReport(
             <th>Latest</th>
             <th>Age</th>
             <th>Risk</th>
+            <th>Security</th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -339,6 +348,10 @@ export function generateHtmlReport(
         const noteBadge = keyword ? `<span class="badge badge-${keyword}">${keyword.toUpperCase()}</span>` : '';
         const noteText = pkg.note ? escapeHtml(pkg.note.replace(/^(BLOCKED|DEFERRED|ACCEPTED(\s+RISK)?)[:\-\s]+/i, '').trim()) : '';
         const noteDisplay = noteBadge && noteText ? `${noteBadge} ${noteText}` : noteBadge || noteText || '';
+        
+        const securityCell = pkg.securityAdvisory 
+            ? `<span style="color: #dc2626; font-weight: bold;">🚨 ${escapeHtml(pkg.securityAdvisory.severity)}</span>` 
+            : '-';
 
         res += `<tr>
             <td>${escapeHtml(pkg.name)}</td>
@@ -346,6 +359,7 @@ export function generateHtmlReport(
             <td>${escapeHtml(pkg.latest)}</td>
             <td>${escapeHtml(ageStr)}</td>
             <td><span class="risk-badge" style="background-color: ${riskColor}">${escapeHtml(pkg.risk)}</span></td>
+            <td>${securityCell}</td>
             <td class="notes">${noteDisplay}</td>
         </tr>`;
       }

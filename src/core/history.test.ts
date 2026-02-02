@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { calculateHealthScore } from './analyzer.js';
-import { calculateTrend, createSnapshot } from './history.js';
+import { calculateTrend } from './history.js';
 import type { EnrichedPackage, Snapshot } from '../types/index.js';
 
 describe('calculateHealthScore', () => {

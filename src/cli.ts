@@ -14,6 +14,7 @@ import { enrichPackages } from './core/enricher.js';
 import { calculateTrend, createSnapshot, loadSnapshots, saveSnapshot } from './core/history.js';
 import { normalizeOutdatedOutput } from './core/normalizer.js';
 import { scanOutdated } from './core/scanner.js';
+import { scanSecurity } from './core/security.js';
 import { loadNotes } from './notes/loader.js';
 import { mergeNotes } from './notes/merger.js';
 import { generateHtmlReport } from './reports/html.js';
@@ -226,12 +227,23 @@ program
       const enriched = await enrichPackages(normalized, config.concurrency);
       logger.stopSpinner();
       logger.success('Enrichment complete');
+      
+      // Security Scan (Phase 3)
+      logger.startSpinner('Scanning for security vulnerabilities...');
+      const securityMap = await scanSecurity(cwd, detection.manager);
+      logger.stopSpinner();
+      
+      const enrichedWithSecurity = enriched.map(p => ({
+          ...p,
+          hasSecurityAdvisory: !!securityMap[p.name],
+          securityAdvisory: securityMap[p.name]
+      }));
 
       // Parse stale threshold from config (Phase 2)
       const staleThresholdDays = parseDurationToDays(config.staleThreshold);
       
       // Analyze (calculate risk and stale status)
-      let analyzed = analyzePackages(enriched, staleThresholdDays);
+      let analyzed = analyzePackages(enrichedWithSecurity, staleThresholdDays);
 
       // Apply ignore patterns (Phase 2)
       const beforeFilter = analyzed.length;

@@ -39,7 +39,13 @@ export function calculateRisk(pkg: EnrichedPackage): Risk {
   const ageInMonths = age !== null ? age / 30 : null;
   const versionDiff = diff(current, latest);
 
-  // Security always critical
+  // Security handling
+  if (pkg.securityAdvisory) {
+      const s = pkg.securityAdvisory.severity.toLowerCase();
+      if (s === 'critical') return 'CRITICAL';
+      if (s === 'high') return 'HIGH';
+      return 'MEDIUM'; // Moderate/Low/Info ensure at least Medium
+  }
   if (hasSecurityAdvisory) return 'CRITICAL';
 
   // Very old (possibly abandoned) - > 24 months

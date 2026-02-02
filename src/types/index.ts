@@ -22,6 +22,13 @@ export type Risk =
   | 'Exotic'
   | 'NotInstalled';
 
+export interface SecurityAdvisory {
+  severity: string;  // 'critical' | 'high' | 'moderate' | 'low' | 'info'
+  title: string;
+  url: string;
+  affectedRange?: string;
+}
+
 // Enriched with registry data
 export interface EnrichedPackage extends OutdatedPackage {
   currentPublishedAt: Date | null;  // When current version was published
@@ -32,6 +39,7 @@ export interface EnrichedPackage extends OutdatedPackage {
   risk: Risk;
   note?: string;                      // From notes.json (will be added later)
   hasSecurityAdvisory?: boolean;      // Whether there is a security advisory
+  securityAdvisory?: SecurityAdvisory; // Details if any
 }
 
 // Registry time data structure
