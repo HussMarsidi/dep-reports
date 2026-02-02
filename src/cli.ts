@@ -102,7 +102,7 @@ program
 
 // Default command (audit)
 program
-  .option('--dry-run [level]', 'Preview summary without writing files (summary|actions|full)', 'actions')
+  .option('--dry-run [level]', 'Preview summary without writing files (summary|actions|full)')
   .action(async (options) => {
     try {
       const cwd = process.cwd();
