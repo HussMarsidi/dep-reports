@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { format, parse, subDays, differenceInDays } from 'date-fns';
 import { diff } from 'semver';
@@ -214,9 +214,31 @@ export function getAvailableReports(reportsDir: string): string[] {
 export async function compareCommand(
   fromDate: string,
   toDate: string,
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  options?: { save?: boolean; format?: string }
 ): Promise<void> {
   const reportsDir = join(cwd, '.dep-report', 'reports');
+  
+  if (!existsSync(reportsDir)) {
+    logger.error('No reports directory found. Run dep-report first to generate reports.');
+    process.exit(1);
+  }
+  
+  // Load config to determine save behavior
+  const { loadConfig } = await import('../config/loader.js');
+  const config = loadConfig(cwd);
+  
+  // Determine if we should save (CLI flag overrides config)
+  const shouldSave = options?.save ?? config.comparison.enabled;
+  
+  // Determine format (CLI flag overrides config)
+  let saveMarkdown = config.comparison.formats.markdown;
+  let saveHtml = config.comparison.formats.html;
+  
+  if (options?.format) {
+    saveMarkdown = options.format === 'markdown' || options.format === 'both';
+    saveHtml = options.format === 'html' || options.format === 'both';
+  }
   
   if (!existsSync(reportsDir)) {
     logger.error('No reports directory found. Run dep-report first to generate reports.');
@@ -339,6 +361,56 @@ export async function compareCommand(
   const statusText = improvement > 0 ? 'improved' : improvement < 0 ? 'regressed' : 'unchanged';
   console.log(`${statusEmoji} Overall: Health ${statusText} by ${Math.abs(improvement).toFixed(1)}%`);
   console.log(`   Score: ${fromScore.toFixed(1)} → ${toScore.toFixed(1)}\n`);
+  
+  // Generate and save comparison reports if enabled
+  if (shouldSave) {
+    const comparisonsDir = join(cwd, '.dep-report', 'comparisons');
+    if (!existsSync(comparisonsDir)) {
+      mkdirSync(comparisonsDir, { recursive: true });
+    }
+    
+    const filename = `${fromDateStr}_vs_${toDateStr}`;
+    
+    // Prepare comparison data
+    const comparisonData = {
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+      daysDiff,
+      fromPackages: fromData.packages,
+      toPackages: toData.packages,
+      summary: {
+        fromStale: fromData.summary.stale,
+        toStale: toData.summary.stale,
+        fromMajor: fromData.summary.major,
+        toMajor: toData.summary.major,
+        fromScore,
+        toScore,
+        improvement,
+      },
+      changes: {
+        added,
+        removed,
+        upgraded: upgraded.map(pkg => ({
+          pkg,
+          fromVersion: fromData.packages.find(fp => fp.name === pkg.name)?.current || pkg.current,
+        })),
+      },
+    };
+    
+    if (saveMarkdown) {
+      const { generateComparisonMarkdown } = await import('../reports/comparison-markdown.js');
+      const markdown = generateComparisonMarkdown(comparisonData);
+      writeFileSync(join(comparisonsDir, `${filename}.md`), markdown);
+      logger.success(`Comparison report saved: .dep-report/comparisons/${filename}.md`);
+    }
+    
+    if (saveHtml) {
+      const { generateComparisonHtml } = await import('../reports/comparison-html.js');
+      const html = generateComparisonHtml(comparisonData);
+      writeFileSync(join(comparisonsDir, `${filename}.html`), html);
+      logger.success(`Comparison report saved: .dep-report/comparisons/${filename}.html`);
+    }
+  }
   
   // Exit code based on improvement
   process.exit(improvement < 0 ? 1 : 0);

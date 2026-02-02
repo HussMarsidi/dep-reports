@@ -16,6 +16,13 @@ export const DEFAULT_CONFIG: Config = {
     major: false,
   },
   reportEmptyState: true,
+  comparison: {
+    enabled: true,
+    formats: {
+      markdown: true,
+      html: true,
+    },
+  },
 };
 
 /**
@@ -34,6 +41,13 @@ const ConfigSchema = z.object({
     major: z.boolean().default(DEFAULT_CONFIG.failConditions.major),
   }).default(DEFAULT_CONFIG.failConditions),
   reportEmptyState: z.boolean().default(DEFAULT_CONFIG.reportEmptyState),
+  comparison: z.object({
+    enabled: z.boolean().default(DEFAULT_CONFIG.comparison.enabled),
+    formats: z.object({
+      markdown: z.boolean().default(DEFAULT_CONFIG.comparison.formats.markdown),
+      html: z.boolean().default(DEFAULT_CONFIG.comparison.formats.html),
+    }).default(DEFAULT_CONFIG.comparison.formats),
+  }).default(DEFAULT_CONFIG.comparison),
 }).passthrough(); // Allow extra fields for future extensibility
 
 /**
@@ -52,6 +66,13 @@ export interface Config {
     major: boolean;
   };
   reportEmptyState: boolean;         // Create files even if all up-to-date
+  comparison: {
+    enabled: boolean;                // Generate comparison report files by default
+    formats: {
+      markdown: boolean;
+      html: boolean;
+    };
+  };
 }
 
 /**
