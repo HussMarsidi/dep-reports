@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { format, parse, subDays, differenceInDays } from 'date-fns';
+import { diff } from 'semver';
 import { logger } from '../utils/logger.js';
 import type { EnrichedPackage, Risk } from '../types/index.js';
 
@@ -32,10 +33,8 @@ function parseReport(content: string, date: string): ReportData | null {
     const cells = row.split('|').map(c => c.trim()).filter(c => c);
     if (cells.length < 6) continue;
     
-    const [name, current, latest, age, behind, risk, status, notes] = cells;
-    
-    // Skip if stable (no action needed)
-    if (status.includes('Stable')) continue;
+    // table columns: Package | Current | Latest | Age | Risk | Notes
+    const [name, current, latest, age, risk, notes] = cells;
     
     // Parse age
     let ageDays: number | null = null;
@@ -48,24 +47,17 @@ function parseReport(content: string, date: string): ReportData | null {
       }
     }
     
-    // Parse behind
-    let behindDays: number | null = null;
-    if (behind && behind !== '—') {
-      const behindMatch = behind.match(/(\d+)d|(\d+)m|(\d+)y/);
-      if (behindMatch) {
-        if (behindMatch[1]) behindDays = parseInt(behindMatch[1]);
-        else if (behindMatch[2]) behindDays = parseInt(behindMatch[2]) * 30;
-        else if (behindMatch[3]) behindDays = parseInt(behindMatch[3]) * 365;
-      }
-    }
-    
     // Determine risk
-    let pkgRisk: Risk = 'Patch';
-    if (risk.includes('Major')) pkgRisk = 'Major';
-    else if (risk.includes('Minor')) pkgRisk = 'Minor';
-    else if (risk.includes('Patch')) pkgRisk = 'Patch';
-    else if (risk.includes('Exotic')) pkgRisk = 'Exotic';
-    else if (risk.includes('NotInstalled')) pkgRisk = 'NotInstalled';
+    let pkgRisk: Risk = 'LOW';
+    const r = risk.toUpperCase();
+    if (r.includes('CRITICAL')) pkgRisk = 'CRITICAL';
+    else if (r.includes('HIGH')) pkgRisk = 'HIGH';
+    else if (r.includes('MEDIUM')) pkgRisk = 'MEDIUM';
+    else if (r.includes('LOW')) pkgRisk = 'LOW';
+    else if (r.includes('BLOCKED')) pkgRisk = 'BLOCKED';
+    else if (r.includes('DEFERRED')) pkgRisk = 'DEFERRED';
+    else if (r.includes('EXOTIC')) pkgRisk = 'Exotic';
+    else if (r.includes('NOTINSTALLED')) pkgRisk = 'NotInstalled';
     
     packages.push({
       name,
@@ -76,7 +68,7 @@ function parseReport(content: string, date: string): ReportData | null {
       currentPublishedAt: null,
       latestPublishedAt: null,
       age: ageDays,
-      behindByDays: behindDays,
+      behindByDays: null, // Not easily parsed from this table format
       isStale: ageDays !== null && ageDays > 365,
       risk: pkgRisk,
       note: notes || undefined,
@@ -84,11 +76,23 @@ function parseReport(content: string, date: string): ReportData | null {
   }
   
   // Extract summary from header
-  const summaryMatch = content.match(/Total: (\d+) \| Outdated: (\d+) \| Stale: (\d+)/);
-  const total = summaryMatch ? parseInt(summaryMatch[1]) : packages.length;
-  const outdated = summaryMatch ? parseInt(summaryMatch[2]) : packages.length;
-  const stale = summaryMatch ? parseInt(summaryMatch[3]) : packages.filter(p => p.isStale).length;
-  const major = packages.filter(p => p.risk === 'Major').length;
+  // Matches: "Total: 9 | Outdated: 2 | Stale: 1" - this might be legacy format.
+  // New format: "Runtime Dependencies ... Outdated: X | Stale: Y"
+  // For compare command to work robustly, it should parse the package list primarily.
+  // But let's try to grab total stats if possible, or derive from packages.
+  
+  const total = packages.length; // Approximate
+  const outdated = packages.length;
+  const stale = packages.filter(p => p.isStale).length;
+  
+  // Count major via semver diff
+  const major = packages.filter(p => {
+      try {
+          return diff(p.current, p.latest) === 'major';
+      } catch {
+          return false;
+      }
+  }).length;
   
   return {
     date,

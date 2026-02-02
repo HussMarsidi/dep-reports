@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import type { EnrichedPackage } from '../types/index.js';
+import type { EnrichedPackage, TrendData } from '../types/index.js';
 import { calculateSummary, calculatePriorityScore, formatNoteWithBadge } from './summary.js';
 
 /**
@@ -27,7 +27,8 @@ function formatAge(age: number | null): string {
 export function generateMarkdownReport(
   packages: EnrichedPackage[],
   date: Date = new Date(),
-  totalDependencies?: number
+  totalDependencies?: number,
+  trendData?: TrendData
 ): string {
   const dateStr = format(date, 'yyyy-MM-dd');
   const timestamp = format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -48,12 +49,27 @@ export function generateMarkdownReport(
   const runtimeStats = getStats(runtimeDeps);
   const devStats = getStats(devDeps);
   
-  // Note: Total dependencies per type is not fully available in current architecture 
-  // (we only passed totalDependencies count). 
-  // For now we'll calculate percentages based on outdated count relative to total outdated? 
-  // Or just display counts. Spec shows "Total: 9 | Outdated: 2 (22%)". 
-  // We can't do the % accurately without total deps per type. 
-  // I will omit % for now or just show outdated/stale counts.
+  let trendSection = '';
+  if (trendData && trendData.snapshots.length > 0) {
+      trendSection = `📈 Trend (Last ${trendData.period})\n\n`;
+      
+      const { healthScore, staleCount, outdatedCount, criticalCount } = trendData.metrics;
+      
+      const formatChange = (m: { current: number; previous: number; change: number; trend: string }) => {
+          const sign = m.change > 0 ? '+' : '';
+          const trendIcon = m.trend === 'improving' ? '✅' : m.trend === 'worsening' ? '🔴' : '➡️';
+          // Capitalize first letter
+          const trendText = m.trend.charAt(0).toUpperCase() + m.trend.slice(1);
+          return `${m.previous} → ${m.current} ${trendIcon} ${trendText} (${sign}${m.change})`;
+      };
+
+      trendSection += `Health Score: ${formatChange(healthScore)}\n`;
+      trendSection += `Stale packages: ${formatChange(staleCount)}\n`;
+      trendSection += `Outdated: ${formatChange(outdatedCount)}\n`;
+      trendSection += `Critical risk: ${formatChange(criticalCount)}\n`;
+      
+      trendSection += `\n`; 
+  }
 
   let markdown = `# Dependency Report (${dateStr})
 
@@ -63,7 +79,7 @@ Generated at: ${timestamp}
    ${summary.riskStatusEmoji} ${summary.riskStatusText}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 Dependency Health Summary
+${trendSection}📊 Dependency Health Summary
 
 Runtime Dependencies
   Outdated: ${runtimeStats.outdated} | Stale: ${runtimeStats.stale}
@@ -116,9 +132,8 @@ Acknowledged Issues
       high: actionRequired.filter(p => p.risk === 'HIGH'),
       blocked: actionRequired.filter(p => p.risk === 'BLOCKED'),
       deferred: actionRequired.filter(p => p.risk === 'DEFERRED'),
-      medium: actionRequired.filter(p => p.risk === 'MEDIUM' && (p.note && /ACCEPTED/i.test(p.note || ''))), // Show accepted risks if high priority?
+      medium: actionRequired.filter(p => p.risk === 'MEDIUM' && (p.note && /ACCEPTED/i.test(p.note || ''))), 
   };
-  // Note: Spec shows Blocked items in Action Required section.
 
   if (groups.critical.length > 0) {
       markdown += `### 🔴 Critical Risk (${groups.critical.length})\n`;

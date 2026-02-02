@@ -332,7 +332,7 @@ describe('Report generation', () => {
         age: 3287,
         behindByDays: 2292, // Days between 2015-01-26 and 2021-05-06
         isStale: true,
-        risk: 'Major' as const
+        risk: 'HIGH' as const
       }
     ];
 

@@ -98,3 +98,65 @@ export function analyzePackages(
     };
   });
 }
+
+/**
+ * Calculates a health score (0-100) for the project based on dependencies
+ */
+export function calculateHealthScore(deps: EnrichedPackage[]): number {
+  const base = 100;
+  
+  // Count active items (exclude blocked/deferred/not installed)
+  const active = deps.filter(d => 
+    d.risk !== 'BLOCKED' && 
+    d.risk !== 'DEFERRED' && 
+    d.risk !== 'NotInstalled' &&
+    d.risk !== 'Exotic'
+  );
+  
+  // Spec says: "Count active items (exclude blocked/deferred)" 
+  // But usage of `total` in outdatedPercent uses active list in logic below.
+  
+  const criticalCount = active.filter(d => d.risk === 'CRITICAL').length;
+  const highCount = active.filter(d => d.risk === 'HIGH').length;
+  const mediumCount = active.filter(d => d.risk === 'MEDIUM').length;
+  const staleCount = active.filter(d => d.isStale).length;
+  
+  // Need age in months. active[i].age is in days
+  const veryOldCount = active.filter(d => (d.age || 0) > 365 * 2).length; // > 24 months
+  const securityCount = active.filter(d => d.hasSecurityAdvisory).length;
+  
+  // Penalty weights
+  const penalties = {
+    security: 15,
+    critical: 10,
+    high: 5,
+    medium: 2,
+    stale: 3,
+    veryOld: 5,
+  };
+  
+  let score = base;
+  score -= securityCount * penalties.security;
+  score -= criticalCount * penalties.critical;
+  score -= highCount * penalties.high;
+  score -= mediumCount * penalties.medium;
+  score -= staleCount * penalties.stale;
+  score -= veryOldCount * penalties.veryOld;
+  
+  // Additional penalty for high percentage of outdated
+  // outdated is anything not LOW? Or anything where current != latest?
+  // Spec: outdatedPercent = (active.filter(d => d.risk !== 'LOW').length / total) * 100;
+  // Note: 'total' in spec likely refers to 'active.length' to get percentage of tracked packages.
+  const activeTotal = active.length;
+  if (activeTotal > 0) {
+      const outdatedCount = active.filter(d => d.risk !== 'LOW').length;
+      const outdatedPercent = (outdatedCount / activeTotal) * 100;
+      
+      if (outdatedPercent > 50) {
+        score -= 10;
+      }
+  }
+  
+  return Math.max(0, Math.round(score));
+}
+

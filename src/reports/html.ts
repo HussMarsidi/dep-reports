@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
-import type { EnrichedPackage } from '../types/index.js';
-import { calculateSummary, calculatePriorityScore, detectNoteKeyword, formatNoteWithBadge, isStable } from './summary.js';
+import type { EnrichedPackage, TrendData } from '../types/index.js';
+import { calculateSummary, calculatePriorityScore, detectNoteKeyword } from './summary.js';
 
 /**
  * Escapes HTML special characters to prevent XSS
@@ -67,7 +67,8 @@ function getRiskColor(risk: string): string {
 export function generateHtmlReport(
   packages: EnrichedPackage[],
   date: Date = new Date(),
-  totalDependencies?: number
+  totalDependencies?: number,
+  trendData?: TrendData
 ): string {
   const dateStr = format(date, 'yyyy-MM-dd');
   const timestamp = format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -91,6 +92,43 @@ export function generateHtmlReport(
                       summary.riskStatus === 'CRITICAL' ? '#dc2626' : 
                       summary.riskStatus === 'AT_RISK' ? '#ef4444' :
                       summary.riskStatus === 'NEEDS_ATTENTION' ? '#f59e0b' : '#3b82f6';
+  
+  // Trend Section HTML
+  let trendSection = '';
+  if (trendData && trendData.snapshots.length > 0) {
+      const { healthScore, staleCount, outdatedCount, criticalCount } = trendData.metrics;
+
+      const formatTrend = (m: any) => {
+          const sign = m.change > 0 ? '+' : '';
+          const color = m.trend === 'improving' ? '#10b981' : m.trend === 'worsening' ? '#dc2626' : '#6b7280';
+          const icon = m.trend === 'improving' ? '↗' : m.trend === 'worsening' ? '↘' : '➡️';
+          return `<span style="color: ${color}; font-weight: bold;">${icon} ${m.current}</span> <span style="font-size: 0.8em; color: #6b7280;">(${sign}${m.change})</span>`;
+      };
+      
+      trendSection = `
+      <div class="summary-section">
+          <h2>📈 Trend (Last ${trendData.period})</h2>
+          <div class="summary-grid">
+              <div class="summary-card">
+                  <strong>Health Score</strong>
+                  <span>${formatTrend(healthScore)}</span>
+              </div>
+              <div class="summary-card">
+                  <strong>Stale Dependencies</strong>
+                  <span>${formatTrend(staleCount)}</span>
+              </div>
+              <div class="summary-card">
+                  <strong>Outdated</strong>
+                  <span>${formatTrend(outdatedCount)}</span>
+              </div>
+              <div class="summary-card">
+                  <strong>Critical</strong>
+                  <span>${formatTrend(criticalCount)}</span>
+              </div>
+          </div>
+      </div>
+      `;
+  }
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -182,6 +220,8 @@ export function generateHtmlReport(
       ${summary.riskStatusEmoji} ${summary.riskStatusText}
     </div>
     
+    ${trendSection}
+
     <div class="summary-section">
       <h2>📊 Dependency Health Summary</h2>
       <div class="summary-grid">

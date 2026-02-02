@@ -8,9 +8,10 @@ import { compareCommand } from './commands/compare.js';
 import { initCommand } from './commands/init.js';
 import { loadConfig } from './config/loader.js';
 import type { PresetName } from './config/presets.js';
-import { analyzePackages } from './core/analyzer.js';
+import { analyzePackages, calculateHealthScore } from './core/analyzer.js';
 import { detectPackageManager } from './core/detector.js';
 import { enrichPackages } from './core/enricher.js';
+import { calculateTrend, createSnapshot, loadSnapshots, saveSnapshot } from './core/history.js';
 import { normalizeOutdatedOutput } from './core/normalizer.js';
 import { scanOutdated } from './core/scanner.js';
 import { loadNotes } from './notes/loader.js';
@@ -242,10 +243,22 @@ program
       // Merge notes (Phase 2)
       const notes = loadNotes(cwd);
       analyzed = mergeNotes(analyzed, notes);
-
+      
+      // Calculate Metrics & History
+      const totalDependencies = countTotalDependencies(cwd); 
+      const healthScore = calculateHealthScore(analyzed);
+      const snapshot = createSnapshot(analyzed, healthScore, totalDependencies);
+      
+      if (!options.dryRun) {
+        await saveSnapshot(snapshot, cwd);
+      }
+      
+      // Calculate Trend
+      const history = await loadSnapshots(cwd);
+      const trendData = calculateTrend(options.dryRun ? [...history, snapshot] : history);
+      
       // Handle dry-run mode
       if (options.dryRun) {
-        const totalDependencies = countTotalDependencies(cwd);
         const summary = calculateSummary(analyzed, totalDependencies);
         const dryRunLevel = typeof options.dryRun === 'string' ? options.dryRun : 'actions';
         
@@ -331,11 +344,10 @@ program
         }
 
         const dateStr = format(new Date(), 'yyyy-MM-dd');
-        const totalDependencies = countTotalDependencies(cwd);
 
         // Generate markdown report
         if (config.formats.markdown) {
-          const report = generateMarkdownReport(analyzed, new Date(), totalDependencies);
+          const report = generateMarkdownReport(analyzed, new Date(), totalDependencies, trendData);
           writeFileSync(join(reportsDir, `${dateStr}_outdated.md`), report);
           writeFileSync(join(reportsDir, 'latest.md'), report);
           logger.success(`Report generated: .dep-report/reports/${dateStr}_outdated.md`);
@@ -344,7 +356,7 @@ program
 
         // Generate HTML report
         if (config.formats.html) {
-          const htmlReport = generateHtmlReport(analyzed, new Date(), totalDependencies);
+          const htmlReport = generateHtmlReport(analyzed, new Date(), totalDependencies, trendData);
           writeFileSync(join(reportsDir, `${dateStr}_outdated.html`), htmlReport);
           writeFileSync(join(reportsDir, 'latest.html'), htmlReport);
           logger.success(`HTML report generated: .dep-report/reports/${dateStr}_outdated.html`);
