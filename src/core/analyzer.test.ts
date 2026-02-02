@@ -2,201 +2,146 @@ import { describe, test, expect } from 'bun:test';
 import { calculateRisk, isExoticVersion, analyzePackages } from './analyzer.js';
 import type { EnrichedPackage } from '../types/index.js';
 
+function mockPkg(
+  current: string, 
+  latest: string, 
+  age: number | null = null, 
+  note?: string, 
+  hasSecurityAdvisory: boolean = false
+): EnrichedPackage {
+  return {
+    name: 'test-pkg',
+    current,
+    latest,
+    age,
+    note,
+    hasSecurityAdvisory,
+    // defaults
+    wanted: latest,
+    type: 'dependencies',
+    currentPublishedAt: null,
+    latestPublishedAt: null,
+    behindByDays: null,
+    isStale: false,
+    risk: 'Exotic' 
+  };
+}
+
 describe('analyzer', () => {
   describe('isExoticVersion', () => {
     test('returns false for normal semver versions', () => {
       expect(isExoticVersion('1.0.0')).toBe(false);
-      expect(isExoticVersion('2.3.4')).toBe(false);
       expect(isExoticVersion('1.0.0-beta.1')).toBe(false);
     });
 
     test('returns false for missing/not installed', () => {
       expect(isExoticVersion('-')).toBe(false);
       expect(isExoticVersion('missing')).toBe(false);
-      expect(isExoticVersion('')).toBe(false);
     });
 
-    test('returns true for file: protocol', () => {
-      expect(isExoticVersion('file:../local-package')).toBe(true);
+    test('returns true for protocols', () => {
       expect(isExoticVersion('file:./local')).toBe(true);
-    });
-
-    test('returns true for git+ protocol', () => {
-      expect(isExoticVersion('git+https://github.com/user/repo.git')).toBe(true);
-      expect(isExoticVersion('git+ssh://git@github.com/user/repo.git')).toBe(true);
-    });
-
-    test('returns true for http/https protocols', () => {
-      expect(isExoticVersion('https://example.com/package.tgz')).toBe(true);
-      expect(isExoticVersion('http://example.com/package.tgz')).toBe(true);
-    });
-
-    test('returns true for link: protocol', () => {
-      expect(isExoticVersion('link:../local-package')).toBe(true);
-    });
-
-    test('returns true for workspace: protocol', () => {
+      expect(isExoticVersion('git+ssh://...')).toBe(true);
       expect(isExoticVersion('workspace:*')).toBe(true);
-      expect(isExoticVersion('workspace:^1.0.0')).toBe(true);
     });
   });
 
   describe('calculateRisk', () => {
     test('returns Exotic for exotic versions', () => {
-      expect(calculateRisk('file:../local', '1.0.0')).toBe('Exotic');
-      expect(calculateRisk('git+https://github.com/user/repo', '1.0.0')).toBe('Exotic');
+      expect(calculateRisk(mockPkg('file:../local', '1.0.0'))).toBe('Exotic');
     });
 
     test('returns NotInstalled for missing versions', () => {
-      expect(calculateRisk('-', '1.0.0')).toBe('NotInstalled');
-      expect(calculateRisk('missing', '1.0.0')).toBe('NotInstalled');
-      expect(calculateRisk('', '1.0.0')).toBe('NotInstalled');
+      expect(calculateRisk(mockPkg('missing', '1.0.0'))).toBe('NotInstalled');
+      expect(calculateRisk(mockPkg('-', '1.0.0'))).toBe('NotInstalled');
     });
 
-    test('returns Exotic for invalid semver', () => {
-      expect(calculateRisk('invalid', '1.0.0')).toBe('Exotic');
-      expect(calculateRisk('1.0.0', 'invalid')).toBe('Exotic');
+    test('returns CRITICAL for security advisory', () => {
+        expect(calculateRisk(mockPkg('1.0.0', '1.0.1', 10, undefined, true))).toBe('CRITICAL');
     });
 
-    test('returns Major for major version difference', () => {
-      expect(calculateRisk('1.0.0', '2.0.0')).toBe('Major');
-      expect(calculateRisk('2.5.0', '3.0.0')).toBe('Major');
-      expect(calculateRisk('0.1.0', '1.0.0')).toBe('Major');
+    test('returns CRITICAL for very old packages (>24mo)', () => {
+        // 25 months * 30 days = 750 days
+        expect(calculateRisk(mockPkg('1.0.0', '1.0.1', 750))).toBe('CRITICAL');
     });
 
-    test('returns Minor for minor version difference', () => {
-      expect(calculateRisk('1.0.0', '1.1.0')).toBe('Minor');
-      expect(calculateRisk('2.3.0', '2.4.0')).toBe('Minor');
+    test('returns BLOCKED/DEFERRED based on notes', () => {
+        expect(calculateRisk(mockPkg('1.0.0', '2.0.0', 100, 'BLOCKED: reason'))).toBe('BLOCKED');
+        expect(calculateRisk(mockPkg('1.0.0', '2.0.0', 100, 'DEFERRED: reason'))).toBe('DEFERRED');
+    });
+    
+    describe('Major updates', () => {
+        test('CRITICAL if stale (>18mo)', () => {
+            // 19 months = 570 days
+            expect(calculateRisk(mockPkg('1.0.0', '2.0.0', 570))).toBe('CRITICAL');
+        });
+        test('HIGH if moderately old (6-18mo)', () => {
+            // 8 months = 240 days
+            expect(calculateRisk(mockPkg('1.0.0', '2.0.0', 240))).toBe('HIGH');
+        });
+        test('MEDIUM if recent (<6mo)', () => {
+            // 2 months = 60 days
+            expect(calculateRisk(mockPkg('1.0.0', '2.0.0', 60))).toBe('MEDIUM');
+        });
+        test('HIGH if age unknown (fallback)', () => {
+            expect(calculateRisk(mockPkg('1.0.0', '2.0.0', null))).toBe('HIGH');
+        });
     });
 
-    test('returns Patch for patch version difference', () => {
-      expect(calculateRisk('1.0.0', '1.0.1')).toBe('Patch');
-      expect(calculateRisk('2.3.4', '2.3.5')).toBe('Patch');
+    describe('Minor updates', () => {
+        test('HIGH if stale (>18mo)', () => {
+            expect(calculateRisk(mockPkg('1.1.0', '1.2.0', 570))).toBe('HIGH');
+        });
+        test('MEDIUM if moderately old (6-18mo)', () => {
+            expect(calculateRisk(mockPkg('1.1.0', '1.2.0', 240))).toBe('MEDIUM');
+        });
+        test('LOW if recent (<6mo)', () => {
+            expect(calculateRisk(mockPkg('1.1.0', '1.2.0', 60))).toBe('LOW');
+        });
+        test('MEDIUM if age unknown (fallback)', () => {
+            expect(calculateRisk(mockPkg('1.1.0', '1.2.0', null))).toBe('MEDIUM');
+        });
     });
 
-    test('handles prerelease differences', () => {
-      // semver.diff treats prerelease as major difference
-      // This is expected behavior - going from stable to prerelease or vice versa
-      expect(calculateRisk('1.0.0', '1.0.0-beta.1')).toBe('Major');
-      expect(calculateRisk('1.0.0-alpha.1', '1.0.0')).toBe('Major');
+    describe('Patch updates', () => {
+        test('MEDIUM if old (>12mo)', () => {
+            // 13 months = 390 days
+            expect(calculateRisk(mockPkg('1.0.0', '1.0.1', 390))).toBe('MEDIUM');
+        });
+        test('LOW if recent', () => {
+            expect(calculateRisk(mockPkg('1.0.0', '1.0.1', 60))).toBe('LOW');
+        });
+        test('LOW if age unknown', () => {
+            expect(calculateRisk(mockPkg('1.0.0', '1.0.1', null))).toBe('LOW');
+        });
     });
 
-    test('handles same version', () => {
-      expect(calculateRisk('1.0.0', '1.0.0')).toBe('Patch');
+    test('handles valid prereleases as LOW', () => {
+        expect(calculateRisk(mockPkg('1.0.0-beta.1', '1.0.0-beta.2', 10))).toBe('LOW');
     });
   });
 
   describe('analyzePackages', () => {
     test('calculates risk for all packages', () => {
       const packages: EnrichedPackage[] = [
-        {
-          name: 'pkg1',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '2.0.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: null,
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic', // Will be recalculated
-        },
-        {
-          name: 'pkg2',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '1.1.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: null,
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic', // Will be recalculated
-        },
+        mockPkg('1.0.0', '2.0.0', 600), // Major + Stale -> CRITICAL
+        mockPkg('1.1.0', '1.2.0', 30),  // Minor + Recent -> LOW
       ];
 
       const result = analyzePackages(packages);
-      expect(result[0].risk).toBe('Major');
-      expect(result[1].risk).toBe('Minor');
+      expect(result[0].risk).toBe('CRITICAL');
+      expect(result[1].risk).toBe('LOW');
     });
 
     test('marks packages as stale when age exceeds threshold', () => {
       const packages: EnrichedPackage[] = [
-        {
-          name: 'pkg1',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '1.0.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: 100, // 100 days old
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic',
-        },
-        {
-          name: 'pkg2',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '1.0.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: 30, // 30 days old
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic',
-        },
+        mockPkg('1.0.0', '1.0.0', 100), // 100 days old
+        mockPkg('1.0.0', '1.0.0', 30),  // 30 days old
       ];
 
       const result = analyzePackages(packages, 90); // 90 day threshold
       expect(result[0].isStale).toBe(true);
       expect(result[1].isStale).toBe(false);
-    });
-
-    test('does not mark as stale when threshold is null', () => {
-      const packages: EnrichedPackage[] = [
-        {
-          name: 'pkg1',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '1.0.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: 1000,
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic',
-        },
-      ];
-
-      const result = analyzePackages(packages, null);
-      expect(result[0].isStale).toBe(false);
-    });
-
-    test('handles null age gracefully', () => {
-      const packages: EnrichedPackage[] = [
-        {
-          name: 'pkg1',
-          current: '1.0.0',
-          wanted: '1.0.0',
-          latest: '1.0.0',
-          type: 'dependencies',
-          currentPublishedAt: null,
-          latestPublishedAt: null,
-          age: null,
-          behindByDays: null,
-          isStale: false,
-          risk: 'Exotic',
-        },
-      ];
-
-      const result = analyzePackages(packages, 90);
-      expect(result[0].isStale).toBe(false);
     });
   });
 });

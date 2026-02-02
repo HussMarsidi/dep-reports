@@ -254,8 +254,9 @@ program
         console.log(`Status: ${summary.riskStatusEmoji} ${summary.riskStatusText}\n`);
         
         console.log(`Total dependencies: ${summary.total}`);
-        console.log(`Outdated: ${summary.outdated} (${summary.major} major, ${summary.minor} minor, ${summary.patch} patch)`);
-        console.log(`Stale (>12 months): ${summary.stale}\n`);
+        console.log(`Outdated: ${summary.outdated}`);
+        console.log(`Risk Breakdown: ${summary.critical} critical, ${summary.high} high, ${summary.medium} medium, ${summary.low} low`);
+        console.log(`Stale (>12 months): ${summary.stale}\n`); // TODO: update stale label to match config/logic?
         
         if (dryRunLevel === 'actions' || dryRunLevel === 'full') {
           const actionRequired = analyzed
@@ -271,7 +272,14 @@ program
               const ageStr = pkg.age !== null ? `${pkg.age}d` : 'Unknown';
               const behindStr = pkg.behindByDays !== null ? `${pkg.behindByDays}d` : '—';
               const noteBadge = pkg.note ? formatNoteWithBadge(pkg.note) : '';
-              const riskEmoji = pkg.risk === 'Major' ? '🔴' : pkg.risk === 'Minor' ? '🟡' : '🟢';
+              
+              let riskEmoji = '✅';
+              if (pkg.risk === 'CRITICAL') riskEmoji = '🔴';
+              else if (pkg.risk === 'HIGH') riskEmoji = '⚠️';
+              else if (pkg.risk === 'MEDIUM') riskEmoji = '📦';
+              else if (pkg.risk === 'BLOCKED') riskEmoji = '🚫';
+              else if (pkg.risk === 'DEFERRED') riskEmoji = '📅';
+
               console.log(`  ${riskEmoji} ${pkg.name} (${ageStr}, behind by ${behindStr}) - ${pkg.risk} ${pkg.current} → ${pkg.latest}${noteBadge ? `, ${noteBadge}` : ''}`);
             }
             console.log('');
@@ -301,7 +309,8 @@ program
           }
         }
         if (config.failConditions.major) {
-          const hasMajor = analyzed.some(pkg => pkg.risk === 'Major');
+          const { diff } = await import('semver');
+          const hasMajor = analyzed.some(pkg => diff(pkg.current, pkg.latest) === 'major');
           if (hasMajor) {
             logger.error('Found major version updates (--fail-if-major)');
             shouldFail = true;
@@ -353,7 +362,8 @@ program
         }
       }
       if (config.failConditions.major) {
-        const hasMajor = analyzed.some(pkg => pkg.risk === 'Major');
+        const { diff } = await import('semver');
+        const hasMajor = analyzed.some(pkg => diff(pkg.current, pkg.latest) === 'major');
         if (hasMajor) {
           logger.error('Found major version updates (--fail-if-major)');
           shouldFail = true;

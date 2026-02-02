@@ -11,41 +11,68 @@ export function isExoticVersion(version: string): boolean {
   return /^(file:|git\+|https?:|link:|workspace:)/.test(version);
 }
 
+function parseNoteStatus(note: string | undefined): 'BLOCKED' | 'DEFERRED' | 'ACCEPTED_RISK' | 'NONE' {
+  if (!note) return 'NONE';
+  if (/BLOCKED:/i.test(note)) return 'BLOCKED';
+  if (/DEFERRED:/i.test(note)) return 'DEFERRED';
+  if (/ACCEPTED\s+RISK:/i.test(note)) return 'ACCEPTED_RISK';
+  return 'NONE';
+}
+
 /**
- * Calculates the risk level based on semver difference
+ * Calculates the risk level based on semver difference and age
  */
-export function calculateRisk(current: string, latest: string): Risk {
-  // Handle exotic versions first
-  if (isExoticVersion(current)) {
-    return 'Exotic';
+export function calculateRisk(pkg: EnrichedPackage): Risk {
+  const { current, latest, age, note, hasSecurityAdvisory } = pkg;
+
+  // Handle exotic/missing first
+  if (isExoticVersion(current)) return 'Exotic';
+  if (!current || current === '-' || current === 'missing') return 'NotInstalled';
+  if (!valid(current) || !valid(latest)) return 'Exotic';
+
+  // Check notes for Blocked/Deferred
+  const status = parseNoteStatus(note);
+  if (status === 'BLOCKED') return 'BLOCKED';
+  if (status === 'DEFERRED') return 'DEFERRED';
+  // ACCEPTED_RISK falls through to normal risk calculation
+
+  const ageInMonths = age !== null ? age / 30 : null;
+  const versionDiff = diff(current, latest);
+
+  // Security always critical
+  if (hasSecurityAdvisory) return 'CRITICAL';
+
+  // Very old (possibly abandoned) - > 24 months
+  if (ageInMonths !== null && ageInMonths > 24) return 'CRITICAL';
+
+  // Major update
+  if (versionDiff === 'major') {
+    if (ageInMonths !== null && ageInMonths > 18) return 'CRITICAL';
+    if (ageInMonths !== null && ageInMonths >= 6) return 'HIGH';
+    if (ageInMonths !== null) return 'MEDIUM'; // Recent major
+    return 'HIGH'; // Unknown age fallback for major
   }
 
-  // Handle missing/not installed
-  if (!current || current === '-' || current === 'missing') {
-    return 'NotInstalled';
+  // Minor update
+  if (versionDiff === 'minor') {
+    if (ageInMonths !== null && ageInMonths > 18) return 'HIGH';
+    if (ageInMonths !== null && ageInMonths >= 6) return 'MEDIUM';
+    if (ageInMonths !== null) return 'LOW'; // Recent minor
+    return 'MEDIUM'; // Unknown age fallback for minor
   }
 
-  // Validate semver
-  if (!valid(current) || !valid(latest)) {
-    return 'Exotic';
+  // Patch update
+  if (versionDiff === 'patch') {
+    if (ageInMonths !== null && ageInMonths > 12) return 'MEDIUM';
+    return 'LOW'; // Recent patch or unknown age
   }
 
-  try {
-    const versionDiff = diff(current, latest);
-    switch (versionDiff) {
-      case 'major':
-        return 'Major';
-      case 'minor':
-        return 'Minor';
-      case 'patch':
-        return 'Patch';
-      default:
-        // Prerelease, build metadata, etc.
-        return 'Patch';
-    }
-  } catch {
-    return 'Exotic';
+  // Pre-release or other updates
+  if (versionDiff && ['premajor', 'preminor', 'prepatch', 'prerelease'].includes(versionDiff)) {
+    return 'LOW'; // Treat prereleases as low risk for now
   }
+
+  return 'LOW';
 }
 
 /**
@@ -57,7 +84,7 @@ export function analyzePackages(
 ): EnrichedPackage[] {
   return packages.map(pkg => {
     // Calculate risk
-    const risk = calculateRisk(pkg.current, pkg.latest);
+    const risk = calculateRisk(pkg);
 
     // Calculate stale status if threshold is provided
     const isStale = staleThresholdDays !== null && 

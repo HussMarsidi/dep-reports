@@ -11,17 +11,27 @@ export interface OutdatedPackage {
 }
 
 // Risk levels
-export type Risk = 'Major' | 'Minor' | 'Patch' | 'Exotic' | 'NotInstalled';
+export type Risk = 
+  | 'CRITICAL' 
+  | 'HIGH' 
+  | 'MEDIUM' 
+  | 'LOW' 
+  | 'BLOCKED' 
+  | 'DEFERRED' 
+  | 'ACCEPTED_RISK'
+  | 'Exotic'
+  | 'NotInstalled';
 
 // Enriched with registry data
 export interface EnrichedPackage extends OutdatedPackage {
   currentPublishedAt: Date | null;  // When current version was published
   latestPublishedAt: Date | null;    // When latest version was published
-  age: number | null;                 // Days since current was published
+  age: number | null;                 // days since current was published
   behindByDays: number | null;       // Days between current and latest publish dates
   isStale: boolean;                   // age > threshold (will be set later)
   risk: Risk;
   note?: string;                      // From notes.json (will be added later)
+  hasSecurityAdvisory?: boolean;      // Whether there is a security advisory
 }
 
 // Registry time data structure

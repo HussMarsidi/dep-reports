@@ -11,7 +11,7 @@ exports[`Report generation analyzed packages match snapshot 1`] = `
     "latest": "4.17.21",
     "latestPublishedAt": 2021-05-06T00:00:00.000Z,
     "name": "lodash",
-    "risk": "Minor",
+    "risk": "CRITICAL",
     "type": "dependencies",
     "wanted": "4.17.21",
   },
