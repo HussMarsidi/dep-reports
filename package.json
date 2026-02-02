@@ -1,6 +1,6 @@
 {
   "name": "dep-report",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Zero-config CLI tool that generates version-controlled snapshots of dependency risk",
   "type": "module",
   "main": "dist/cli.js",
