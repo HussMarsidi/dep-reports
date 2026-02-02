@@ -35,6 +35,13 @@ export function loadConfig(cwd: string = process.cwd()): Config {
         major: userConfig.failConditions?.major ?? DEFAULT_CONFIG.failConditions.major,
       },
       reportEmptyState: userConfig.reportEmptyState ?? DEFAULT_CONFIG.reportEmptyState,
+      comparison: {
+        enabled: userConfig.comparison?.enabled ?? DEFAULT_CONFIG.comparison.enabled,
+        formats: {
+          markdown: userConfig.comparison?.formats?.markdown ?? DEFAULT_CONFIG.comparison.formats.markdown,
+          html: userConfig.comparison?.formats?.html ?? DEFAULT_CONFIG.comparison.formats.html,
+        },
+      },
     };
 
     // Validate the merged config

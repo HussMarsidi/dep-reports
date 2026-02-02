@@ -30,6 +30,10 @@ export const PRESETS: Record<PresetName, Preset> = {
         major: false,
       },
       reportEmptyState: true,
+      comparison: {
+        enabled: true,
+        formats: { markdown: true, html: true },
+      },
     },
   },
   production: {
@@ -49,6 +53,10 @@ export const PRESETS: Record<PresetName, Preset> = {
         major: true,
       },
       reportEmptyState: true,
+      comparison: {
+        enabled: true,
+        formats: { markdown: true, html: true },
+      },
     },
   },
   strict: {
@@ -68,6 +76,10 @@ export const PRESETS: Record<PresetName, Preset> = {
         major: true,
       },
       reportEmptyState: true,
+      comparison: {
+        enabled: true,
+        formats: { markdown: true, html: true },
+      },
     },
   },
 };

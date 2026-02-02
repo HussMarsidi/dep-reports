@@ -1,7 +1,5 @@
-
-import { describe, it, expect, mock, beforeAll, afterAll } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { parseReport, extractDateFromContent } from './compare.js';
-import type { Risk } from '../types/index.js';
 
 describe('compare command', () => {
   describe('extractDateFromContent', () => {
