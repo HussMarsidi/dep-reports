@@ -1,5 +1,5 @@
 {
-  "staleThreshold": "18 months",
+  "staleThreshold": "12 months",
   "ignorePatterns": [],
   "formats": {
     "markdown": true,
