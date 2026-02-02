@@ -17,24 +17,62 @@ interface ReportData {
 }
 
 /**
+ * Extracts date from report content
+ */
+export function extractDateFromContent(content: string): string | null {
+  const match = content.match(/Report \((\d{4}-\d{2}-\d{2})\)/);
+  return match ? match[1] : null;
+}
+
+/**
  * Parses a markdown report to extract package data
  */
-function parseReport(content: string, date: string): ReportData | null {
-  // Extract packages from the table
-  const tableMatch = content.match(/\| Package \|.*?\n\|-+\|\n([\s\S]*?)\n\n/);
-  if (!tableMatch) {
-    return null;
-  }
-
-  const rows = tableMatch[1].trim().split('\n');
+export function parseReport(content: string, date: string): ReportData | null {
+  const lines = content.split('\n');
   const packages: EnrichedPackage[] = [];
+  let headerMap: Record<string, number> | null = null;
   
-  for (const row of rows) {
-    const cells = row.split('|').map(c => c.trim()).filter(c => c);
-    if (cells.length < 6) continue;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) continue;
     
-    // table columns: Package | Current | Latest | Age | Risk | Notes
-    const [name, current, latest, age, risk, notes] = cells;
+    // Check if it's a separator line (only dashes, pipes, spaces)
+    if (/^[|\s-]+$/.test(trimmed)) continue;
+
+    const rowContent = trimmed.replace(/^\||\|$/g, '');
+    const cells = rowContent.split('|').map(c => c.trim());
+    
+    // Detect Header
+    if (cells.some(c => c.toLowerCase() === 'package') && cells.some(c => c.toLowerCase() === 'current')) {
+      headerMap = {};
+      cells.forEach((header, index) => {
+        headerMap![header.toLowerCase()] = index; 
+      });
+      continue;
+    }
+    
+    if (!headerMap) continue;
+    
+    // Ensure we have enough cells for required columns
+    // We need at least Package, Current, Latest
+    if (cells.length < 3) continue;
+    
+    // Extract data using header map
+    const getCell = (key: string) => {
+      const idx = headerMap![key];
+      return idx !== undefined && idx < cells.length ? cells[idx] : '';
+    };
+
+    const name = getCell('package');
+    const current = getCell('current');
+    const latest = getCell('latest');
+    const age = getCell('age');
+    const risk = getCell('risk');
+    const notes = getCell('notes');
+    // We ignore security column for now in valid comparisons as it's not strictly needed for logic, 
+    // but parsing won't break because of it.
+
+    if (!name || !current) continue;
     
     // Parse age
     let ageDays: number | null = null;
@@ -64,28 +102,26 @@ function parseReport(content: string, date: string): ReportData | null {
       current,
       latest,
       wanted: latest,
-      type: 'dependencies',
+      type: 'dependencies', // This is generic, we lose dev vs runtime distinction from table headers but that's acceptable for compare
       currentPublishedAt: null,
       latestPublishedAt: null,
       age: ageDays,
-      behindByDays: null, // Not easily parsed from this table format
+      behindByDays: null,
       isStale: ageDays !== null && ageDays > 365,
       risk: pkgRisk,
       note: notes || undefined,
     });
   }
   
-  // Extract summary from header
-  // Matches: "Total: 9 | Outdated: 2 | Stale: 1" - this might be legacy format.
-  // New format: "Runtime Dependencies ... Outdated: X | Stale: Y"
-  // For compare command to work robustly, it should parse the package list primarily.
-  // But let's try to grab total stats if possible, or derive from packages.
+  // Return null only if no packages could be parsed AND the content didn't look like a valid report
+  if (packages.length === 0 && !content.includes('Dependency Health Summary')) {
+    return null;
+  }
   
-  const total = packages.length; // Approximate
+  const total = packages.length;
   const outdated = packages.length;
   const stale = packages.filter(p => p.isStale).length;
   
-  // Count major via semver diff
   const major = packages.filter(p => {
       try {
           return diff(p.current, p.latest) === 'major';
@@ -156,6 +192,23 @@ function calculateHealthScore(summary: ReportData['summary']): number {
 }
 
 /**
+ * Get list of available report dates
+ */
+export function getAvailableReports(reportsDir: string): string[] {
+  if (!existsSync(reportsDir)) return [];
+  
+  return readdirSync(reportsDir)
+    .filter(f => f.endsWith('_outdated.md'))
+    .map(f => {
+      const match = f.match(/(\d{4}-\d{2}-\d{2})_outdated\.md/);
+      return match ? match[1] : null;
+    })
+    .filter((d): d is string => d !== null)
+    .sort()
+    .reverse();
+}
+
+/**
  * Compares two dependency reports
  */
 export async function compareCommand(
@@ -175,11 +228,23 @@ export async function compareCommand(
   
   if (!fromPath) {
     logger.error(`Report not found for: ${fromDate}`);
+    const available = getAvailableReports(reportsDir);
+    if (available.length > 0) {
+      console.log('\nAvailable reports:');
+      available.forEach(d => console.log(`  - ${d}`));
+    } else {
+      console.log('\nNo reports found. Run "dep-report" to generate your first report.');
+    }
     process.exit(1);
   }
   
   if (!toPath) {
     logger.error(`Report not found for: ${toDate}`);
+    const available = getAvailableReports(reportsDir);
+    if (available.length > 0) {
+      console.log('\nAvailable reports:');
+      available.forEach(d => console.log(`  - ${d}`));
+    }
     process.exit(1);
   }
   
@@ -188,8 +253,9 @@ export async function compareCommand(
   
   const fromMatch = fromPath.match(/(\d{4}-\d{2}-\d{2})_outdated\.md/);
   const toMatch = toPath.match(/(\d{4}-\d{2}-\d{2})_outdated\.md/);
-  const fromDateStr = fromMatch ? fromMatch[1] : fromDate;
-  const toDateStr = toMatch ? toMatch[1] : toDate;
+  
+  const fromDateStr = fromMatch ? fromMatch[1] : (extractDateFromContent(fromContent) || fromDate);
+  const toDateStr = toMatch ? toMatch[1] : (extractDateFromContent(toContent) || toDate);
   
   const fromData = parseReport(fromContent, fromDateStr);
   const toData = parseReport(toContent, toDateStr);
@@ -199,7 +265,8 @@ export async function compareCommand(
     process.exit(1);
   }
   
-  const daysDiff = differenceInDays(parse(toDateStr, 'yyyy-MM-dd', new Date()), parse(fromDateStr, 'yyyy-MM-dd', new Date()));
+  let daysDiff: number | string = differenceInDays(parse(toDateStr, 'yyyy-MM-dd', new Date()), parse(fromDateStr, 'yyyy-MM-dd', new Date()));
+  if (isNaN(daysDiff as number)) daysDiff = '?';
   
   // Calculate deltas
   const staleDelta = toData.summary.stale - fromData.summary.stale;
@@ -227,6 +294,10 @@ export async function compareCommand(
   console.log(`\nDependency Health Comparison`);
   console.log(`From: ${fromDateStr} → ${toDateStr} (${daysDiff} days)\n`);
   
+  if (fromDateStr === toDateStr) {
+    console.log('⚠️  Warning: Comparing a report against itself. Deltas will be zero.\n');
+  }
+
   if (upgraded.length > 0) {
     console.log(`📈 Improvements:`);
     for (const pkg of upgraded.slice(0, 5)) {

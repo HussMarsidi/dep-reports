@@ -36,9 +36,10 @@ program
   .name('dep-report')
   .description('Generate dependency risk reports')
   .version(packageVersion)
+  .allowExcessArguments(false)
   .addHelpText('before', `
 dep-report - Generate dependency risk reports
-
+ 
 USAGE
   dep-report [options]
 

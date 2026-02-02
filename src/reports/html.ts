@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import type { EnrichedPackage, TrendData } from '../types/index.js';
-import { calculateSummary, calculatePriorityScore, detectNoteKeyword } from './summary.js';
+import { calculatePriorityScore, calculateSummary, detectNoteKeyword } from './summary.js';
 
 /**
  * Escapes HTML special characters to prevent XSS
