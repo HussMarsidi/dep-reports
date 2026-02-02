@@ -171,6 +171,42 @@ dep-report compare last-month latest
 
 **Use case**: Monthly team reviews, tracking progress on dependency hygiene initiatives.
 
+## Open Command
+
+### `dep-report open`
+
+Opens the latest HTML report in your default browser.
+
+**Usage**:
+```bash
+dep-report open
+```
+
+**What it does**:
+- Locates `.dep-report/reports/latest.html`
+- Opens it in your default browser
+- Works cross-platform (macOS, Windows, Linux)
+
+**Exit codes**:
+- `0`: Successfully opened report
+- `1`: Report not found or error opening browser
+
+**Examples**:
+```bash
+# Generate and view report
+dep-report
+dep-report open
+```
+
+**Error handling**:
+```
+No report found. Run "dep-report" first to generate a report.
+```
+
+**Solution**: Run `dep-report` to generate a report first.
+
+**Use case**: Quick visual review of dependency health, sharing reports with team members, viewing formatted HTML output.
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -247,6 +283,9 @@ dep-report compare 2025-12-01 latest
 
 # Compare last month to today
 dep-report compare last-month latest
+
+# View latest report in browser
+dep-report open
 ```
 
 ## Error Messages

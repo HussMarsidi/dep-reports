@@ -53,6 +53,7 @@ QUICK START
 EXAMPLES
   dep-report                           # Daily audit
   dep-report init                      # Initialize configuration
+  dep-report open                      # Open latest HTML report in browser
 
 LEARN MORE
   https://github.com/hussmarsidi/dep-reports
@@ -94,6 +95,47 @@ program
   .action(async (from, to) => {
     try {
       await compareCommand(from, to);
+    } catch (error) {
+      logger.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Open command
+program
+  .command('open')
+  .description('Open the latest HTML report in your default browser')
+  .action(async () => {
+    try {
+      const cwd = process.cwd();
+      const latestHtmlPath = join(cwd, '.dep-report', 'reports', 'latest.html');
+      
+      if (!existsSync(latestHtmlPath)) {
+        logger.error('No report found. Run "dep-report" first to generate a report.');
+        process.exit(1);
+      }
+      
+      // Use dynamic import to avoid bundling issues
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+      
+      // Determine the command based on platform
+      const platform = process.platform;
+      let command: string;
+      
+      if (platform === 'darwin') {
+        command = `open "${latestHtmlPath}"`;
+      } else if (platform === 'win32') {
+        command = `start "" "${latestHtmlPath}"`;
+      } else {
+        // Linux and others
+        command = `xdg-open "${latestHtmlPath}"`;
+      }
+      
+      await execAsync(command);
+      logger.success('Opened latest.html in your default browser');
+      process.exit(0);
     } catch (error) {
       logger.error(error instanceof Error ? error.message : String(error));
       process.exit(1);

@@ -21,6 +21,7 @@ hero:
 ## Quick Start
 ```bash
 npx dep-report
+npx dep-report open  # View report in browser
 ```
 
 Generates a timestamped dependency report showing:

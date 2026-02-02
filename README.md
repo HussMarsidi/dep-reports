@@ -75,6 +75,14 @@ dep-report
 
 Scans for outdated packages and generates reports based on your configuration.
 
+### View Reports
+
+```bash
+dep-report open
+```
+
+Opens the latest HTML report in your default browser.
+
 ### Reports
 
 Reports are generated in `.dep-report/reports/`:
